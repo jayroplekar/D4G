@@ -10,14 +10,15 @@ from church_analysis import Church_Analysis, validate_inputs as validate_church_
 from persona_analysis import Persona_Analysis, validate_inputs as validate_persona_inputs
 
 current_datetime = datetime.datetime.now().strftime("%Y_%m_%d_%H_%M")
-# Get output and input folders from command line arguments or environment variables
-if len(sys.argv) > 2:
-    output_dir = sys.argv[1]
-    input_dir = sys.argv[2]
+
+# Get input folder from command line arguments or environment variables
+if len(sys.argv) > 1:
+    input_dir = sys.argv[1]
 else:
-    output_dir = os.environ.get("OUTPUT_DIR", os.getcwd())
-    output_dir=os.path.join(output_dir, "Output"+str(current_datetime) )
     input_dir = os.environ.get("INPUT_DIR", os.getcwd())
+
+# Always create output in a separate output folder
+output_dir = os.path.join(os.getcwd(), "Output" + str(current_datetime))
 
 # Create output folder if needed
 try:
@@ -25,8 +26,12 @@ try:
         os.makedirs(output_dir)
 except Exception as e:
     print(f"Could not create output folder: {output_dir}. Error: {e}")
-    with open(os.path.join(output_dir, "error_summary.txt"), "w") as f:
-        f.write(f"Could not create output folder: {output_dir}. Error: {e}")
+    # Try to create error file in current directory if output folder creation fails
+    try:
+        with open("error_summary.txt", "w") as f:
+            f.write(f"Could not create output folder: {output_dir}. Error: {e}")
+    except:
+        pass
     sys.exit(1)
 
 # Remove old Analysis.log before setting up logger

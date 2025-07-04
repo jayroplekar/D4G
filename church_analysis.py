@@ -22,9 +22,7 @@ def validate_inputs(logger, input_dir):
         'd4g_opportunity.csv': ['Amount', 'AccountId', 'CloseDate', 'Probability'],
     }
     
-    logger.info(f"Checking {len(required_files)} files for church analysis:")
-    for fname, columns in required_files.items():
-        logger.info(f"  - {fname}: {', '.join(columns)}")
+    logger.info(f"Checking {len(required_files)} input files for church analysis:")
     
     all_ok = True
     missing_columns = []
@@ -37,8 +35,9 @@ def validate_inputs(logger, input_dir):
             continue
         try:
             df = pd.read_csv(fpath, nrows=1)
-            logger.info(f"Required columns for {fname}: {columns}")
-            logger.info(f"Actual columns in {fname}: {list(df.columns)}")
+            logger.info(f"File: {fname}")
+            logger.info(f"  Required columns: {columns}")
+            logger.info(f"  Actual columns: {list(df.columns)}")
         except Exception as e:
             logger.error(f"Error reading {fname}: {e}")
             all_ok = False
@@ -76,40 +75,33 @@ class Church_Analysis:
     _CHURCH_COLOR = "red"
 
     def process_ChurchData(self, pdf, logger, output_dir, input_dir):
+        logger.info("=== CHURCH ANALYSIS STARTED ===")
         try:
-            logger.debug('Reading account and opportunity tables')
-            account_table= pd.read_csv(f'{input_dir}/d4g_account.csv')
-            opportunity_table=pd.read_csv(f'{input_dir}/d4g_opportunity.csv')
-        except:
-            logger.error("Account and opportunity tables or columns missing, Can't continue Analysis!!")
-            raise SystemExit("Account and opportunity tables or columns missing, Can't continue Analysis!!")
+            # Read the data
+            df_account = pd.read_csv(f'{input_dir}/d4g_account.csv')
+            df_opportunity = pd.read_csv(f'{input_dir}/d4g_opportunity.csv')
+            
+            # Process the data
+            df_account = Church_Analysis.process_account_table(df_account)
+            df_opportunity_account = Church_Analysis.join_account_and_opportunity(df_account, df_opportunity)
+            
+            # Get the analysis results
+            donors_gained_over_time = Church_Analysis.get_donors_gained_per_year(df_account)
+            closed_donation_opportunity_by_year = Church_Analysis.get_closed_donation_opportunity_by_year(df_opportunity_account)
+            closed_donation_opportunity_by_month = Church_Analysis.get_closed_donation_opportunity_by_month(df_opportunity_account)
+            
+            # Plot the results
+            church_analysis_fig, church_analysis_axes = Church_Analysis.plot_church_analysis(donors_gained_over_time, closed_donation_opportunity_by_year, closed_donation_opportunity_by_month)
+            pdf.savefig(church_analysis_fig)
+            
+            logger.info("=== CHURCH ANALYSIS SUCCESSFULLY COMPLETED ===")
+        except Exception as e:
+            logger.error(f"=== CHURCH ANALYSIS FAILED ===")
+            logger.error(f"Error during church analysis: {str(e)}")
+            import traceback
+            logger.error(f"Traceback: {traceback.format_exc()}")
+            raise
 
-        
-        # Process data
-        df_account = Church_Analysis.process_account_table(account_table)
-        df_opportunity_account = Church_Analysis.join_account_and_opportunity(
-            df_account, opportunity_table
-        )
-
-        # Aggregate for plots
-        donors_gained_by_year = Church_Analysis.get_donors_gained_per_year(df_account)
-        opportunity_by_year = Church_Analysis.get_closed_donation_opportunity_by_year(
-            df_opportunity_account
-        )
-        opportunity_by_month = Church_Analysis.get_closed_donation_opportunity_by_month(
-            df_opportunity_account
-        )
-
-        # Make plot
-        church_analysis_fig, church_analysis_axes = Church_Analysis.plot_church_analysis(
-            donors_gained_by_year, 
-            opportunity_by_year, 
-            opportunity_by_month
-        )
-        pdf.savefig(church_analysis_fig)
-        
-
-        
     def process_account_table(df_account: pd.DataFrame) -> pd.DataFrame:
         """Preprocesses the account table for Church Analysis.
 
