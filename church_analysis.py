@@ -37,6 +37,8 @@ def validate_inputs(logger, input_dir):
             continue
         try:
             df = pd.read_csv(fpath, nrows=1)
+            logger.info(f"Required columns for {fname}: {columns}")
+            logger.info(f"Actual columns in {fname}: {list(df.columns)}")
         except Exception as e:
             logger.error(f"Error reading {fname}: {e}")
             all_ok = False

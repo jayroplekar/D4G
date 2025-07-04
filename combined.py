@@ -24,14 +24,17 @@ try:
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
 except Exception as e:
-    logger.error(f"Could not create output folder: {output_dir}. Error: {e}")
+    print(f"Could not create output folder: {output_dir}. Error: {e}")
     with open(os.path.join(output_dir, "error_summary.txt"), "w") as f:
         f.write(f"Could not create output folder: {output_dir}. Error: {e}")
     sys.exit(1)
 
+# Remove old Analysis.log before setting up logger
+log_file = os.path.join(output_dir, 'Analysis.log')
+if os.path.exists(log_file):
+    os.remove(log_file)
 
 # Set up logger early to log folder issues
-log_file = os.path.join(output_dir, 'Analysis.log')
 logger = log.Logger('flat_file')
 logger.setLevel(log.INFO)  # Reduce log verbosity
 formatter = log.Formatter('%(asctime)s - %(levelname)s - %(message)s')

@@ -40,6 +40,8 @@ def validate_inputs(logger, input_dir):
             continue
         try:
             df = pd.read_csv(fpath, nrows=1)
+            logger.info(f"Required columns for {fname}: {columns}")
+            logger.info(f"Actual columns in {fname}: {list(df.columns)}")
         except Exception as e:
             logger.error(f"Error reading {fname}: {e}")
             all_ok = False
@@ -74,13 +76,13 @@ class Persona_Analysis:
         # account
         acc_req_cols = ['npo02__LastCloseDate__c','Id']
         acc = pd.read_csv(f'{input_dir}/d4g_account.csv')
-        acc_cols = acc.columns
-        logger.info(f'DEBUG: Columns in d4g_account.csv: {list(acc_cols)}')
+        acc_cols = acc.columns.tolist()
+        logger.debug(f'Columns in d4g_account.csv: {acc_cols}')
         try:
-            logger.info('Reading account table')
+            logger.debug('Reading account table')
             all(req in acc_cols for req in acc_req_cols)
         except:
-            logger.info("Account table columns missing, Can't continue Analysis!!")
+            logger.error("Account table columns missing, Can't continue Analysis!!")
             raise SystemExit("Account table columns missing, Can't continue Analysis!!") 
 
         acc['npo02__LastCloseDate__c'] = acc['npo02__LastCloseDate__c'].astype('datetime64[ns]') 
@@ -90,12 +92,13 @@ class Persona_Analysis:
         #opportunity
         opp_req_cols = ['Amount','AccountId','CloseDate']     
         try:
-            logger.info('Reading opportunity table')
+            logger.debug('Reading opportunity table')
             opp = pd.read_csv(f'{input_dir}/d4g_opportunity.csv',low_memory=False)
-            opp_cols = opp.columns
+            opp_cols = opp.columns.tolist()
+            logger.debug(f'Columns in d4g_opportunity.csv: {opp_cols}')
             all(req in opp_cols for req in opp_req_cols)           
         except:
-            logger.info("Oppotunity table columns missing")
+            logger.error("Oppotunity table columns missing")
             raise SystemExit("Oppotunity table columns missing, Can't continue Analysis!!") 
         opp['CloseDate'] = opp['CloseDate'].astype('datetime64[ns]') 
         opp['Close_Month'] = opp['CloseDate'].dt.month
@@ -104,17 +107,18 @@ class Persona_Analysis:
         #address
         addr_req_cols = ['npsp__Household_Account__c', 'npsp__MailingCity__c', 'npsp__MailingState__c']
         try:            
-            logger.info('Reading address table')
+            logger.debug('Reading address table')
             addr = pd.read_csv(f'{input_dir}/d4g_address.csv',low_memory=False)
-            addr_cols=addr.columns
+            addr_cols=addr.columns.tolist()
+            logger.debug(f'Columns in d4g_address.csv: {addr_cols}')
             all(req in addr_cols for req in addr_req_cols)
         except:
-            logger.info("Address table columns missing")
+            logger.error("Address table columns missing")
             raise SystemExit("Address table columns missing, Can't continue Analysis!!") 
 
 
         ########################## data manipulation #############################
-        logger.info('\nData progressing on opportunity table')
+        logger.debug('\nData progressing on opportunity table')
         Amount = 'Amount' # donation amount col
         opp_id = 'AccountId' # oppotunity id col
         # account_id = 'Name' # account id col
@@ -129,9 +133,8 @@ class Persona_Analysis:
         opp = opp.loc[:, [opp_id, Amount, 'Close_Month', 'Close_Year']]
 
 
-        logger.info('Fetching key column & calculate statistics for.....')
-        # Stats account-wise
-        logger.info('   donation amount')
+        logger.debug('Fetching key column & calculate statistics for.....')
+        logger.debug('   donation amount')
         a1 = opp.groupby(opp_id).agg({Amount:'min'}).reset_index().rename(columns = {Amount:'amount_min'})
         a2 = opp.groupby(opp_id).agg({Amount:'max'}).reset_index().rename(columns = {Amount:'amount_max'})
         a3 = opp.groupby(opp_id).agg({Amount:'mean'}).reset_index().rename(columns = {Amount:'amount_mean'})
@@ -142,7 +145,7 @@ class Persona_Analysis:
 
 
         # year related columns
-        logger.info('   donation years & seasons')
+        logger.debug('   donation years & seasons')
         a4 = opp.groupby(opp_id).agg({'Close_Year':'min'}).reset_index().rename(columns = {'Close_Year':'start_year'})
         a5 = opp.groupby(opp_id).agg({'Close_Year':'max'}).reset_index().rename(columns = {'Close_Year':'latest_year'})
 
@@ -152,11 +155,11 @@ class Persona_Analysis:
         a8 = opp.groupby(opp_id).agg({'Close_Month':'max'}).reset_index().rename(columns = {'Close_Month':'latest_month'})
 
         # non zero counts for accounts
-        logger.info('   non zero donation counts')
+        logger.debug('   non zero donation counts')
         a10 = opp[opp[Amount]>0].groupby(opp_id).agg({'Close_Month':'count'}).reset_index().rename(columns = {'Close_Month':'non_zero_counts'})
 
         # yearly aggregations
-        logger.info('   time statistics')
+        logger.debug('   time statistics')
         a11 = opp[opp['Close_Year']==2024].groupby(opp_id).agg({'Close_Month':'count'}).reset_index().rename(columns = {'Close_Month':'this_year_non_zero_counts'})
         a12 = opp[opp['Close_Year']==2024].groupby(opp_id).agg({Amount:'sum'}).reset_index().rename(columns = {Amount:'this_year_amount_total'})
         a13 = opp[opp['Close_Year']==2024].groupby(opp_id).agg({Amount:'mean'}).reset_index().rename(columns = {Amount:'this_year_amount_mean'})
@@ -167,7 +170,7 @@ class Persona_Analysis:
 
 
         # merging into 1 account table
-        logger.info('Creating oppotunity summary table')
+        logger.debug('Creating oppotunity summary table')
 
         account = a1.merge(a2,how='left',on=opp_id)
         account = account.merge(a3,how='left',on=opp_id)
@@ -212,7 +215,7 @@ class Persona_Analysis:
         # print(type(state_counts))
 
         ################### New columns for classifications #####################
-        logger.info('\nClassifying...')
+        logger.debug('\nClassifying...')
         account['account_age'] = datetime.datetime.now().year - account['start_year']
 
         account['dormancy_years'] = datetime.datetime.now().year - account['latest_year']
@@ -236,7 +239,7 @@ class Persona_Analysis:
             df_value[i+'_percentiles'] = df_value[i].rank(pct=True)
         ########################## CLASSIFICATION #######################
         # Classification group in persona & color
-        logger.info('Creating Persona group...')
+        logger.debug('Creating Persona group...')
         df_value['persona'] = np.nan
         #Gary(Gold): high value, regular donnor, active
         df_value.loc[(df_value['dormancy_years'] <=2) & (df_value['non_zero_counts'] > 1) & (df_value['amount_total'] >=1000), 'persona'] = 'Gary'
@@ -255,7 +258,7 @@ class Persona_Analysis:
         #Oliver: low value, dormant
         df_value.loc[(df_value['dormancy_years'] > 2) & (df_value['non_zero_counts'] == 1) & (df_value['amount_total'] < 1000), 'persona'] = 'Oliver'
 
-        logger.info('Creating color group...')
+        logger.debug('Creating color group...')
         #Organge: low value, dormant
         df_value['group'] = 'Orange'
         #Gold: high value, regular donnor, active
@@ -274,9 +277,9 @@ class Persona_Analysis:
         df_mrg = acc.merge(df_value, left_on = "Id", right_on = opp_id, how = 'left')
         ################################ OUTPUT ##################################
         # Output table
-        logger.info('\nOutput progressing....')
+        logger.debug('\nOutput progressing....')
 
-        logger.info('   Compiling output files')
+        logger.debug('   Compiling output files')
         stats.to_csv(os.path.join(output_dir, f'd4g_stat_summary.csv'))
         df_value.to_csv(os.path.join(output_dir, f'd4g_value_output.csv'))
         df_none.to_csv(os.path.join(output_dir, f'd4g_potential_output.csv'))
@@ -284,7 +287,7 @@ class Persona_Analysis:
         state_counts.to_csv(os.path.join(output_dir, f'd4g_address_state_distibution.csv'))
 
         # visualizations
-        logger.info('   Compiling graph pdf')
+        logger.debug('   Compiling graph pdf')
         #pdf = PdfPages(path+f"/donor_histogram_{str_current_datetime}.pdf")
         for i in ['amount_total','non_zero_counts', 'dormancy_years']:
             df_value[i].hist()
