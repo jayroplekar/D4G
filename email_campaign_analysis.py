@@ -102,10 +102,10 @@ class Campaign_Analysis:
             # %%
             # 1. Find top 5 CAMPAIGN_ID by sum of TOTAL_GIFTS
             top_campaigns = (
-                df.groupby('CAMPAIGN_ID')['TOTAL_GIFTS']
+                df.groupby(by=['CAMPAIGN_ID'])['TOTAL_GIFTS']
                 .sum()
                 .nlargest(5)
-                .index
+                .index.tolist()
             )
 
             # 2. Filter dataframe for top campaigns
@@ -194,8 +194,9 @@ class Campaign_Analysis:
                 .mean()
                 .round(0)
                 .astype(int)
-                .reset_index(name='avg_TOTAL_GIFTS')
+                .reset_index()
             )
+            avg_total_gifts.columns = ['GENDER', 'avg_TOTAL_GIFTS']
 
             print(avg_total_gifts)
 
@@ -275,14 +276,14 @@ class Campaign_Analysis:
             df['LAST_GIFT_DATE'] = pd.to_datetime(df['LAST_GIFT_DATE'])
 
             # Filter for 'Opened' activity and count occurrences for each CAMPAIGN_ID
-            opened_counts = df[df['ACTIVITY'] == 'Opened'].groupby('CAMPAIGN_ID').size()
+            opened_counts = df[df['ACTIVITY'] == 'Opened'].groupby(by=['CAMPAIGN_ID']).size()
 
             # Get top 10 CAMPAIGN_IDs by 'Opened' activity count
-            top_campaigns = opened_counts.nlargest(10).index
+            top_campaigns = opened_counts.nlargest(10).index.tolist()
             df_top = df[df['CAMPAIGN_ID'].isin(top_campaigns)].copy()
 
             # Filter for 'Opened' activity and calculate average TOTAL_GIFTS within 7-day window
-            def avg_gifts_in_window(row):
+            def avg_gifts_in_window_1(row):
                 window_start = row['LAST_GIFT_DATE'] - timedelta(days=7)
                 mask = (
                     (df_top['ACTIVITY'] == 'Opened') &
@@ -292,7 +293,7 @@ class Campaign_Analysis:
                 )
                 return df_top.loc[mask, 'TOTAL_GIFTS'].mean()
 
-            df_top['avg_gifts_7d'] = df_top.apply(avg_gifts_in_window, axis=1)
+            df_top['avg_gifts_7d'] = df_top.apply(avg_gifts_in_window_1, axis=1)
 
             # Aggregate data for plotting
             plot_data = df_top.groupby('CAMPAIGN_ID')['avg_gifts_7d'].mean().reset_index()
@@ -332,14 +333,14 @@ class Campaign_Analysis:
             df['LAST_GIFT_DATE'] = pd.to_datetime(df['LAST_GIFT_DATE'])
 
             # Filter for 'Opened' activity and count occurrences for each CAMPAIGN_ID
-            opened_counts = df[df['ACTIVITY'] == 'Opened'].groupby('CAMPAIGN_ID').size()
+            opened_counts = df[df['ACTIVITY'] == 'Opened'].groupby(by=['CAMPAIGN_ID']).size()
 
             # Get top 10 CAMPAIGN_IDs by 'Opened' activity count
-            top_campaigns = opened_counts.nlargest(10).index
+            top_campaigns = opened_counts.nlargest(10).index.tolist()
             df_top = df[df['CAMPAIGN_ID'].isin(top_campaigns)].copy()
 
             # Filter for 'Opened' activity and calculate average TOTAL_GIFTS within 7-day window
-            def avg_gifts_in_window(row):
+            def avg_gifts_in_window_2(row):
                 window_start = row['LAST_GIFT_DATE'] - timedelta(days=7)
                 mask = (
                     (df_top['ACTIVITY'] == 'Opened') &
@@ -349,7 +350,7 @@ class Campaign_Analysis:
                 )
                 return df_top.loc[mask, 'TOTAL_GIFTS'].mean()
 
-            df_top['avg_gifts_7d'] = df_top.apply(avg_gifts_in_window, axis=1)
+            df_top['avg_gifts_7d'] = df_top.apply(avg_gifts_in_window_2, axis=1)
 
             # Aggregate data for plotting
             plot_data = (
@@ -430,16 +431,16 @@ class Campaign_Analysis:
                 df['LAST_GIFT_DATE'] = pd.to_datetime(df['LAST_GIFT_DATE'])
 
             # Filter for 'Opened' activity and count occurrences for each CAMPAIGN_ID
-            opened_counts = df[df['ACTIVITY'] == 'Opened'].groupby('CAMPAIGN_ID').size()
+            opened_counts = df[df['ACTIVITY'] == 'Opened'].groupby(by=['CAMPAIGN_ID']).size()
 
             # Get top 10 CAMPAIGN_IDs by 'Opened' activity count
-            top_campaigns = opened_counts.nlargest(10).index
+            top_campaigns = opened_counts.nlargest(10).index.tolist()
 
             df_top = df[df['CAMPAIGN_ID'].isin(top_campaigns)].copy()
 
             # For each row, calculate average TOTAL_GIFTS in 7-day window for its campaign
 
-            def avg_gifts_in_window(row):
+            def avg_gifts_in_window_3(row):
                 window_start = row['LAST_GIFT_DATE'] - timedelta(days=7)
                 mask = (
                     (df_top['ACTIVITY'] == 'Opened') &
@@ -451,57 +452,24 @@ class Campaign_Analysis:
 
             # Only apply to rows with 'Opened' activity for efficiency
             opened_rows = df_top[df_top['ACTIVITY'] == 'Opened'].copy()
-            opened_rows['avg_gifts_7d'] = opened_rows.apply(avg_gifts_in_window, axis=1)
+            if isinstance(opened_rows, pd.DataFrame):
+                opened_rows['avg_gifts_7d'] = opened_rows.apply(avg_gifts_in_window_3, axis=1)
 
             # Aggregate for plotting
-            plot_data = (
-                opened_rows.groupby('CAMPAIGN_ID')
-                .agg(avg_gifts_7d=('avg_gifts_7d', 'mean'), opened_count=('ACTIVITY', 'size'))
-                .reset_index()
-            )
-
-            # Determine global y-axis limits for synchronization
-            max_avg_gifts = plot_data['avg_gifts_7d'].max()
-            max_opened_count = plot_data['opened_count'].max()
-
-            # Create a single plot with 10 subplots in a 2x5 grid
-            fig, axes = plt.subplots(2, 5, figsize=(20, 10), sharey=False)
-            axes = axes.flatten()
-
-            for i, campaign_id in enumerate(top_campaigns):
-                campaign_data = plot_data[plot_data['CAMPAIGN_ID'] == campaign_id]
-                ax1 = axes[i]
-                ax2 = ax1.twinx()
-                # Bar for average TOTAL_GIFTS
-                ax1.bar([0], campaign_data['avg_gifts_7d'], color='skyblue', alpha=0.7, width=0.4, label='Avg TOTAL_GIFTS')
-                ax1.set_ylabel("Avg TOTAL_GIFTS", color='skyblue')
-                ax1.tick_params(axis='y', labelcolor='skyblue')
-                ax1.set_ylim(0, max_avg_gifts * 1.1)
-                # Bar for 'Opened' count
-                ax2.bar([0.5], campaign_data['opened_count'], color='orange', alpha=0.7, width=0.4, label='Opened Count')
-                ax2.set_ylabel("Opened Count", color='orange')
-                ax2.tick_params(axis='y', labelcolor='orange')
-                ax2.set_ylim(0, max_opened_count * 1.1)
-                ax1.set_title(f"Campaign ID: {campaign_id}")
-                ax1.set_xticks([0, 0.5])
-                ax1.set_xticklabels(['Avg Gifts', 'Opened Count'])
-                ax1.grid(False)
-                ax2.grid(False)
-
-            # Remove the last empty subplot if there are fewer than 10 plots
-            for j in range(len(top_campaigns), len(axes)):
-                fig.delaxes(axes[j])
-
-            fig.suptitle("Top 10 Campaigns: Avg TOTAL_GIFTS and Opened Count (7-day window)", fontsize=16)
-            plt.tight_layout(rect=[0, 0, 1, 0.95])
-            pdf.savefig()
-            plt.close()
+            if isinstance(opened_rows, pd.DataFrame):
+                plot_data = (
+                    opened_rows.groupby('CAMPAIGN_ID')
+                    .agg(avg_gifts_7d=('avg_gifts_7d', 'mean'), opened_count=('ACTIVITY', 'size'))
+                    .reset_index()
+                )
+            else:
+                plot_data = pd.DataFrame()
 
             # Show table of how many times each of these top 10 campaign ids have been opened
             print("Table: Number of times each top 10 campaign was 'Opened':")
-            print(plot_data[['CAMPAIGN_ID', 'opened_count']].rename(columns={'opened_count': "Opened Count"}))
-            
-            #display(plot_data[['CAMPAIGN_ID', 'opened_count']].rename(columns={'opened_count': "Opened Count"}))
+            if not plot_data.empty:
+                plot_data_renamed = plot_data[['CAMPAIGN_ID', 'opened_count']].copy().rename(columns={'opened_count': 'Opened Count'})
+                print(plot_data_renamed)
 
 
             # %%
