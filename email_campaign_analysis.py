@@ -118,20 +118,21 @@ class Campaign_Analysis:
             )
 
             # 5. Plot
-            g = sns.FacetGrid(agg_df, col='CAMPAIGN_ID', col_wrap=3, height=4, sharex=True, sharey=True)
-            g.map_dataframe(
-                sns.barplot, 
-                x='NUM_OPENS_BIN', 
-                y='TOTAL_GIFTS',
-                color='skyblue'
-            )
-            g.set_axis_labels("NUM_OPENS (binned)", "Sum of TOTAL_GIFTS")
-            for ax in g.axes.flatten():
-                ax.set_xticklabels([str(label.get_text()) for label in ax.get_xticklabels()], rotation=45, ha='right')
-            plt.subplots_adjust(top=0.85)
-            g.fig.suptitle('Sum of TOTAL_GIFTS by NUM_OPENS bins for Top 5 CAMPAIGN_IDs')
-            pdf.savefig()
-            plt.close()
+            # COMMENTED OUT: Email Campaign Performance Analysis temporarily suppressed
+            # g = sns.FacetGrid(agg_df, col='CAMPAIGN_ID', col_wrap=3, height=4, sharex=True, sharey=True)
+            # g.map_dataframe(
+            #     sns.barplot, 
+            #     x='NUM_OPENS_BIN', 
+            #     y='TOTAL_GIFTS',
+            #     color='skyblue'
+            # )
+            # g.set_axis_labels("NUM_OPENS (binned)", "Sum of TOTAL_GIFTS")
+            # for ax in g.axes.flatten():
+            #     ax.set_xticklabels([str(label.get_text()) for label in ax.get_xticklabels()], rotation=45, ha='right')
+            # plt.subplots_adjust(top=0.85)
+            # g.fig.suptitle('Email Campaign Performance Analysis', fontsize=18, fontweight='bold', y=0.98)
+            # pdf.savefig()
+            # plt.close()
 
             grouped = (
                 df.groupby(['ACTIVITY', 'CAMPAIGN_ID'], dropna=False)['TOTAL_GIFTS']
@@ -242,15 +243,17 @@ class Campaign_Analysis:
             df_opened['opened_count_7d'] = df_opened.apply(count_opened_in_window, axis=1)
 
             # Plot distribution: number of 'Opened' records in 7-day window vs TOTAL_GIFTS
-            plt.figure(figsize=(8,6))
-            plt.scatter(df_opened['opened_count_7d'], df_opened['TOTAL_GIFTS'], alpha=0.6)
-            plt.xlabel("Number of 'Opened' records in 7-day window")
-            plt.ylabel("TOTAL_GIFTS")
-            plt.title("Distribution of 'Opened' Activity Count (7d window) vs TOTAL_GIFTS")
-            plt.grid(True)
-            plt.tight_layout()
-            pdf.savefig()
-            plt.close()
+            # COMMENTED OUT: Email Engagement Analysis temporarily suppressed
+            # fig, ax = plt.subplots(figsize=(8,6))
+            # fig.suptitle('Email Engagement Analysis', fontsize=18, fontweight='bold', y=0.98)
+            # ax.scatter(df_opened['opened_count_7d'], df_opened['TOTAL_GIFTS'], alpha=0.6)
+            # ax.set_xlabel("Number of 'Opened' records in 7-day window")
+            # ax.set_ylabel("TOTAL_GIFTS")
+            # ax.set_title("Distribution of 'Opened' Activity Count (7d window) vs TOTAL_GIFTS", pad=20)
+            # ax.grid(True)
+            # plt.tight_layout()
+            # pdf.savefig()
+            # plt.close()
 
             from datetime import timedelta
 
@@ -280,31 +283,164 @@ class Campaign_Analysis:
             # Aggregate data for plotting
             plot_data = df_top.groupby('CAMPAIGN_ID')['avg_gifts_7d'].mean().reset_index()
 
-            # Create a single plot with 10 subplots in a 2x5 grid
-            fig, axes = plt.subplots(2, 5, figsize=(20, 10), sharey=True)
-            axes = axes.flatten()
-
-            for i, campaign_id in enumerate(top_campaigns):
-                campaign_data = plot_data[plot_data['CAMPAIGN_ID'] == campaign_id]
-                axes[i].bar(
-                    [campaign_id],
-                    campaign_data['avg_gifts_7d'],
-                    color='skyblue',
-                    alpha=0.7
-                )
-                axes[i].set_title(f"Campaign ID: {campaign_id}")
-                axes[i].set_xlabel("Campaign ID")
-                axes[i].grid(True)
-
-            # Remove the last empty subplot if there are fewer than 10 plots
-            for j in range(len(top_campaigns), len(axes)):
-                fig.delaxes(axes[j])
-
-            axes[0].set_ylabel("Average TOTAL_GIFTS")
-            fig.suptitle("Top 10 Campaigns: Average TOTAL_GIFTS (7-day window)", fontsize=16)
-            plt.tight_layout(rect=[0, 0, 1, 0.95])
+            # Create new page 4 with 2 subfigures matching the size of first 3 pages
+            fig, axes = plt.subplots(1, 2, figsize=(20, 10))
+            fig.suptitle('Email Campaign Analysis', fontsize=18, fontweight='bold', y=0.98)
+            
+            # First subfigure: Top 5 Email Campaigns by Opens
+            opened_counts_top5 = opened_counts.nlargest(5)
+            axes[0].bar(opened_counts_top5.index, opened_counts_top5.values, color='skyblue', alpha=0.7)
+            axes[0].set_title('Top 5 Email Campaigns by Opens', fontweight='bold', fontsize=14, pad=25)
+            axes[0].set_xlabel('Campaign ID')
+            axes[0].set_ylabel('Number of Opens')
+            axes[0].tick_params(axis='x', rotation=45)
+            axes[0].grid(True, alpha=0.3)
+            
+            # Add value labels on bars
+            for i, v in enumerate(opened_counts_top5.values):
+                axes[0].text(i, v + max(opened_counts_top5.values) * 0.01, f'{v:,.0f}', 
+                           ha='center', va='bottom', fontweight='bold')
+            
+            # Second subfigure: Top 5 Email Campaigns by Total Donations within 7 days
+            # Calculate total donations within 7 days for each campaign
+            def total_gifts_7d_window(campaign_id):
+                campaign_data = df[df['CAMPAIGN_ID'] == campaign_id].copy()
+                if len(campaign_data) == 0:
+                    return 0
+                
+                # For each row, calculate gifts within 7 days
+                total_gifts = 0
+                for _, row in campaign_data.iterrows():
+                    last_gift_date = row['LAST_GIFT_DATE']
+                    if last_gift_date is not None and not pd.isna(last_gift_date):
+                        window_start = last_gift_date - timedelta(days=7)
+                        mask = (
+                            (df['CAMPAIGN_ID'] == campaign_id) &
+                            (df['LAST_GIFT_DATE'] >= window_start) &
+                            (df['LAST_GIFT_DATE'] <= last_gift_date)
+                        )
+                        total_gifts += df.loc[mask, 'TOTAL_GIFTS'].sum()
+                return total_gifts
+            
+            # Get top campaigns by opens and calculate their 7-day donation totals
+            top_campaigns_7d = opened_counts_top5.index.tolist()
+            donation_totals_7d = {}
+            
+            for campaign_id in top_campaigns_7d:
+                donation_totals_7d[campaign_id] = total_gifts_7d_window(campaign_id)
+            
+            # Sort by donation totals
+            sorted_campaigns = sorted(donation_totals_7d.items(), key=lambda x: x[1], reverse=True)
+            campaign_ids_7d = [item[0] for item in sorted_campaigns]
+            donation_values_7d = [item[1] for item in sorted_campaigns]
+            
+            axes[1].bar(campaign_ids_7d, donation_values_7d, color='lightgreen', alpha=0.7)
+            axes[1].set_title('Top 5 Email Campaigns by Total Donations within 7 days', fontweight='bold', fontsize=14, pad=25)
+            axes[1].set_xlabel('Campaign ID')
+            axes[1].set_ylabel('Total Donations ($)')
+            axes[1].tick_params(axis='x', rotation=45)
+            axes[1].grid(True, alpha=0.3)
+            
+            # Format y-axis to avoid scientific notation
+            axes[1].yaxis.set_major_formatter(plt.FuncFormatter(lambda x, p: f'${x:,.0f}' if x >= 1000 else f'${x:.0f}'))
+            
+            # Add value labels on bars
+            for i, v in enumerate(donation_values_7d):
+                axes[1].text(i, v + max(donation_values_7d) * 0.01, f'${v:,.0f}', 
+                           ha='center', va='bottom', fontweight='bold')
+            
+            plt.tight_layout()
             pdf.savefig()
             plt.close()
+
+            # Create figure showing number of opens by Personas
+            logger.debug('   Creating opens by personas visualization')
+            
+            try:
+                # Load persona data from the output directory
+                persona_file = os.path.join(output_dir, 'd4g_value_output.csv')
+                if os.path.exists(persona_file):
+                    df_personas = pd.read_csv(persona_file)
+                    
+                    # Merge email campaign data with persona data
+                    # We'll use CONTACT ID to match with AccountId from persona data
+                    df_with_personas = df.merge(
+                        df_personas[['AccountId', 'persona']], 
+                        left_on='CONTACT', 
+                        right_on='AccountId', 
+                        how='left'
+                    )
+                    
+                    # Filter for 'Opened' activity and group by persona
+                    df_opens_by_persona = df_with_personas[df_with_personas['ACTIVITY'] == 'Opened'].copy()
+                    
+                    if len(df_opens_by_persona) > 0 and 'persona' in df_opens_by_persona.columns:
+                        # Count opens by persona
+                        opens_by_persona = df_opens_by_persona.groupby('persona').size()
+                        opens_by_persona = opens_by_persona.sort_values(ascending=False)
+                        
+                        # Persona color mapping (matching persona analysis)
+                        persona_colors = {
+                            'Gary': 'gold',
+                            'Ryan': 'green', 
+                            'Yara': 'lightblue',
+                            'Laura': 'purple',
+                            'Peter': 'darkblue',
+                            'Beth': 'red'
+                        }
+                        
+                        # Create the visualization
+                        fig, ax = plt.subplots(figsize=(20, 10))
+                        fig.suptitle('Email Campaign Performance by Donor Personas', fontsize=18, fontweight='bold', y=0.98)
+                        
+                        # Use consistent colors from persona definitions
+                        colors = [persona_colors.get(str(persona), 'gray') for persona in opens_by_persona.index]
+                        
+                        # Create the bar plot
+                        ax.bar(opens_by_persona.index, opens_by_persona.values, color=colors, alpha=0.7)
+                        ax.set_title('Number of Email Opens by Persona', fontweight='bold', fontsize=14, pad=20)
+                        ax.set_xlabel('Persona')
+                        ax.set_ylabel('Number of Opens')
+                        ax.tick_params(axis='x', rotation=45)
+                        ax.grid(True, alpha=0.3)
+                        
+                        # Format y-axis to avoid scientific notation
+                        ax.yaxis.set_major_formatter(plt.FuncFormatter(lambda x, p: f'{x:,.0f}' if x >= 1000 else f'{x:.0f}'))
+                        
+                        # Add value labels on bars
+                        for i, v in enumerate(opens_by_persona.values):
+                            ax.text(i, v + max(opens_by_persona.values) * 0.01, f'{v:,.0f}', 
+                                   ha='center', va='bottom', fontweight='bold')
+                        
+                        # Add persona definitions as text box
+                        persona_definitions = {
+                            'Gary': 'Top 33% amount, low dormancy (high value, active donors)',
+                            'Ryan': 'Middle 33% amount, low dormancy (medium value, active donors)',
+                            'Yara': 'Lowest 33% amount, low dormancy (low value, active donors)',
+                            'Laura': 'Top 33% amount, high dormancy (high value, dormant donors)',
+                            'Peter': 'Middle 33% amount, high dormancy (medium value, dormant donors)',
+                            'Beth': 'Lowest 33% amount, high dormancy (low value, dormant donors)'
+                        }
+                        
+                        # Create text box with persona definitions
+                        textstr = '\n'.join([f'{persona}: {desc}' for persona, desc in persona_definitions.items()])
+                        props = dict(boxstyle='round', facecolor='wheat', alpha=0.8)
+                        ax.text(0.02, 0.98, textstr, transform=ax.transAxes, fontsize=10,
+                               verticalalignment='top', bbox=props)
+                        
+                        plt.tight_layout()
+                        pdf.savefig()
+                        plt.close()
+                        
+                        logger.debug(f'   Opens by persona visualization created successfully. Found {len(opens_by_persona)} personas with opens data.')
+                    else:
+                        logger.warning('   No persona data found in opens data or no opens activity found')
+                        
+                else:
+                    logger.warning(f'   Persona file not found: {persona_file}')
+                    
+            except Exception as e:
+                logger.warning(f'   Could not create opens by personas visualization: {str(e)}')
 
             logger.info("=== EMAIL CAMPAIGN ANALYSIS SUCCESSFULLY COMPLETED ===")
         except Exception as e:

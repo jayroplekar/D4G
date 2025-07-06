@@ -404,6 +404,7 @@ class Church_Analysis:
             A figure and a set of subplots. A matplotlib plot.
         """
         fig, axes = plt.subplots(3, 2, figsize=(20, 10))
+        fig.suptitle('Church Donor Analysis', fontsize=18, fontweight='bold', y=0.98)
 
         # Number of donors gained over time
 

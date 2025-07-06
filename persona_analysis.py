@@ -348,64 +348,68 @@ class Persona_Analysis:
             if len(existing_personas) > 0:
                 # Create comprehensive persona analysis visualizations
                 fig, axes = plt.subplots(2, 2, figsize=(20, 10))
-                fig.suptitle('Persona Donation Analysis', fontsize=18, fontweight='bold', y=0.95)
+                fig.suptitle('Persona Donation Analysis', fontsize=18, fontweight='bold', y=0.98)
                 
                 # 1. Total Amount Donated by Persona (Bar Chart)
-                persona_amounts = df_value.groupby('persona')['amount_total'].sum().sort_values(ascending=False)
+                persona_stats = df_value.groupby('persona').agg({
+                    'amount_total': ['sum', 'mean', 'count'],
+                    'non_zero_counts': ['sum', 'mean'],
+                    'dormancy_years': 'mean'
+                }).round(2)
+                
                 # Use consistent colors from persona definitions
-                colors = [persona_definitions[persona]['color'] for persona in persona_amounts.index]
-                axes[0, 0].bar(persona_amounts.index, persona_amounts.values, color=colors, alpha=0.7)
-                axes[0, 0].set_title('Total Donation Amount by Persona', fontweight='bold')
+                colors = [persona_definitions[persona]['color'] for persona in persona_stats.index]
+                axes[0, 0].bar(persona_stats.index, persona_stats['amount_total']['sum'], color=colors, alpha=0.7)
+                axes[0, 0].set_title('Total Donation Amount by Persona', fontweight='bold', fontsize=14, pad=25)
                 axes[0, 0].set_xlabel('Persona')
                 axes[0, 0].set_ylabel('Total Amount ($)')
                 axes[0, 0].tick_params(axis='x', rotation=45)
                 axes[0, 0].grid(True, alpha=0.3)
+                
                 # Format y-axis to avoid scientific notation
                 axes[0, 0].yaxis.set_major_formatter(plt.FuncFormatter(lambda x, p: f'${x:,.0f}' if x >= 1000 else f'${x:.0f}'))
                 
                 # Add value labels on bars
-                for i, v in enumerate(persona_amounts.values):
-                    axes[0, 0].text(i, v + max(persona_amounts.values) * 0.01, f'${v:,.0f}', 
+                for i, v in enumerate(persona_stats['amount_total']['sum']):
+                    axes[0, 0].text(i, v + max(persona_stats['amount_total']['sum']) * 0.01, f'${v:,.0f}', 
                                    ha='center', va='bottom', fontweight='bold')
                 
-                # 2. Number of Non-Zero Donations by Persona (Bar Chart)
+                # 2. Average Amount Donated by Persona (Bar Chart)
+                axes[0, 1].bar(persona_stats.index, persona_stats['amount_total']['mean'], color=colors, alpha=0.7)
+                axes[0, 1].set_title('Average Donation Amount by Persona', fontweight='bold', fontsize=14, pad=25)
+                axes[0, 1].set_xlabel('Persona')
+                axes[0, 1].set_ylabel('Average Amount ($)')
+                axes[0, 1].tick_params(axis='x', rotation=45)
+                axes[0, 1].grid(True, alpha=0.3)
+                
+                # Format y-axis to avoid scientific notation
+                axes[0, 1].yaxis.set_major_formatter(plt.FuncFormatter(lambda x, p: f'${x:,.0f}' if x >= 1000 else f'${x:.0f}'))
+                
+                # Add value labels on bars
+                for i, v in enumerate(persona_stats['amount_total']['mean']):
+                    axes[0, 1].text(i, v + max(persona_stats['amount_total']['mean']) * 0.01, f'${v:,.0f}', 
+                                   ha='center', va='bottom', fontweight='bold')
+                
+                # 3. Number of Non-Zero Donations by Persona (Bar Chart)
                 persona_counts = df_value.groupby('persona')['non_zero_counts'].sum().sort_values(ascending=False)
                 # Use consistent colors from persona definitions
                 colors = [persona_definitions[persona]['color'] for persona in persona_counts.index]
-                axes[0, 1].bar(persona_counts.index, persona_counts.values, color=colors, alpha=0.7)
-                axes[0, 1].set_title('Donation Activity by Persona', fontweight='bold')
-                axes[0, 1].set_xlabel('Persona')
-                axes[0, 1].set_ylabel('Total Donation Transactions')
-                axes[0, 1].tick_params(axis='x', rotation=45)
-                axes[0, 1].grid(True, alpha=0.3)
-                # Format y-axis to avoid scientific notation
-                axes[0, 1].yaxis.set_major_formatter(plt.FuncFormatter(lambda x, p: f'{x:,.0f}' if x >= 1000 else f'{x:.0f}'))
-                
-                # Add value labels on bars
-                for i, v in enumerate(persona_counts.values):
-                    axes[0, 1].text(i, v + max(persona_counts.values) * 0.01, f'{v:,.0f}', 
-                                   ha='center', va='bottom', fontweight='bold')
-                
-                # 3. Average Amount per Donation by Persona (Bar Chart)
-                persona_avg = df_value.groupby('persona')['amount_total'].mean().sort_values(ascending=False)
-                # Use consistent colors from persona definitions
-                colors = [persona_definitions[persona]['color'] for persona in persona_avg.index]
-                axes[1, 0].bar(persona_avg.index, persona_avg.values, color=colors, alpha=0.7)
-                axes[1, 0].set_title('Average Gift Size by Persona', fontweight='bold')
+                axes[1, 0].bar(persona_counts.index, persona_counts.values, color=colors, alpha=0.7)
+                axes[1, 0].set_title('Donation Activity by Persona', fontweight='bold', fontsize=14, pad=25)
                 axes[1, 0].set_xlabel('Persona')
-                axes[1, 0].set_ylabel('Average Gift Amount ($)')
+                axes[1, 0].set_ylabel('Total Donation Transactions')
                 axes[1, 0].tick_params(axis='x', rotation=45)
                 axes[1, 0].grid(True, alpha=0.3)
                 # Format y-axis to avoid scientific notation
-                axes[1, 0].yaxis.set_major_formatter(plt.FuncFormatter(lambda x, p: f'${x:,.0f}' if x >= 1000 else f'${x:.0f}'))
+                axes[1, 0].yaxis.set_major_formatter(plt.FuncFormatter(lambda x, p: f'{x:,.0f}' if x >= 1000 else f'{x:.0f}'))
                 
                 # Add value labels on bars
-                for i, v in enumerate(persona_avg.values):
-                    axes[1, 0].text(i, v + max(persona_avg.values) * 0.01, f'${v:,.0f}', 
+                for i, v in enumerate(persona_counts.values):
+                    axes[1, 0].text(i, v + max(persona_counts.values) * 0.01, f'{v:,.0f}', 
                                    ha='center', va='bottom', fontweight='bold')
                 
                 # 4. Persona Definitions Table
-                axes[1, 1].set_title('Donor Persona Profiles', fontweight='bold', fontsize=14, y=0.85)
+                axes[1, 1].set_title('Donor Persona Profiles', fontweight='bold', fontsize=14, pad=25)
                 axes[1, 1].axis('off')  # Hide axes for table
                 
                 # Create table data
