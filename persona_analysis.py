@@ -5,6 +5,7 @@ import numpy as np
 import string
 import datetime
 import warnings
+import seaborn as sns
 
 # from pandas.core.common import SettingWithCopyWarning
 # warnings.simplefilter(action="ignore", category=SettingWithCopyWarning)
@@ -76,7 +77,7 @@ class Persona_Analysis:
         try:
             # account
             acc_req_cols = ['npo02__LastCloseDate__c','Id']
-            acc = pd.read_csv(f'{input_dir}/d4g_account.csv')
+            acc = pd.read_csv(os.path.join(input_dir, 'd4g_account.csv'))
             acc_cols = acc.columns.tolist()
             logger.debug(f'Columns in d4g_account.csv: {acc_cols}')
             try:
@@ -94,7 +95,7 @@ class Persona_Analysis:
             opp_req_cols = ['Amount','AccountId','CloseDate']     
             try:
                 logger.debug('Reading opportunity table')
-                opp = pd.read_csv(f'{input_dir}/d4g_opportunity.csv',low_memory=False)
+                opp = pd.read_csv(os.path.join(input_dir, 'd4g_opportunity.csv'), low_memory=False)
                 opp_cols = opp.columns.tolist()
                 logger.debug(f'Columns in d4g_opportunity.csv: {opp_cols}')
                 all(req in opp_cols for req in opp_req_cols)           
@@ -109,7 +110,7 @@ class Persona_Analysis:
             addr_req_cols = ['npsp__Household_Account__c', 'npsp__MailingCity__c', 'npsp__MailingState__c']
             try:            
                 logger.debug('Reading address table')
-                addr = pd.read_csv(f'{input_dir}/d4g_address.csv',low_memory=False)
+                addr = pd.read_csv(os.path.join(input_dir, 'd4g_address.csv'), low_memory=False)
                 addr_cols=addr.columns.tolist()
                 logger.debug(f'Columns in d4g_address.csv: {addr_cols}')
                 all(req in addr_cols for req in addr_req_cols)
@@ -126,8 +127,6 @@ class Persona_Analysis:
             plot_dict = {'amount_total':1000, 'non_zero_counts':1, 'dormancy_years':2} # config on classification
 
             # opportunity table stats
-            # print("opportunity table: ", opp.shape)
-
             opp[opp_id] = opp[opp_id].astype(str, errors = 'ignore')
 
             # col for account & oppo table
@@ -140,9 +139,6 @@ class Persona_Analysis:
             a2 = opp.groupby(opp_id).agg({Amount:'max'}).reset_index().rename(columns = {Amount:'amount_max'})
             a3 = opp.groupby(opp_id).agg({Amount:'mean'}).reset_index().rename(columns = {Amount:'amount_mean'})
             a9 = opp.groupby(opp_id).agg({Amount:'sum'}).reset_index().rename(columns = {Amount:'amount_total'})
-            # print("a1: ", a1.shape)
-            # print("a2: ", a2.shape)
-            # print("a3: ", a3.shape)
 
 
             # year related columns
@@ -188,16 +184,13 @@ class Persona_Analysis:
             account = account.merge(a14,how='left',on=opp_id)
             account = account.merge(a15,how='left',on=opp_id)
             account = account.merge(a16,how='left',on=opp_id)
-            # print("account: ", account.shape)
 
             y = pd.DataFrame()
 
             # TODO try catches for year availability - 2022? use min and max years
             for i in range(0,6):
                 calc_year = datetime.datetime.now().year - i
-                # print("calc_year: ", calc_year)
                 y1 = opp[(opp['Close_Year']==calc_year) & (opp[Amount]>0)].groupby(opp_id).agg({'Close_Month':'count'}).reset_index().rename(columns = {'Close_Month':'times_donated_'+str(calc_year)})
-                # print("y1: ", y1)
                 y1.loc[y1['times_donated_'+str(calc_year)]>0, 'flag_donated_'+str(calc_year)] = 1
                 y = y._append(y1, ignore_index=True)
 
@@ -208,12 +201,9 @@ class Persona_Analysis:
                 calc_year = datetime.datetime.now().year - i
                 y['last_5_non0_years'] = y['last_5_non0_years'] + y['flag_donated_'+str(calc_year)]
 
-            # print("y: ", y.shape)
-
 
             ## get state counts
             state_counts = pd.DataFrame(addr.groupby(['npsp__MailingState__c', 'npsp__MailingCity__c']).size())
-            # print(type(state_counts))
 
             ################### New columns for classifications #####################
             logger.debug('\nClassifying...')
@@ -229,51 +219,70 @@ class Persona_Analysis:
             df_value = account[account['amount_total']>0]
             # Non-donation/volunteer account
             df_none = account[account['amount_total'] <= 0]
-
-            # print("df_value: ", df_value.shape)
-            # print("df_none: ", df_none.shape)
             ########################### Statistics #######################
             stats = (df_value[['amount_total','non_zero_counts', 'dormancy_years']]
                .quantile([0.01, 0.05, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 0.95, 0.99, 1.0])
             )
+            # Assign percentiles to new columns, do NOT overwrite persona
             for i in ['amount_total','non_zero_counts', 'dormancy_years']:
                 df_value[i+'_percentiles'] = df_value[i].rank(pct=True)
+            # (Do NOT assign percentiles to the 'persona' column)
+
             ########################## CLASSIFICATION #######################
             # Classification group in persona & color
             logger.debug('Creating Persona group...')
             df_value['persona'] = np.nan
-            #Gary(Gold): high value, regular donnor, active
-            df_value.loc[(df_value['dormancy_years'] <=2) & (df_value['non_zero_counts'] > 1) & (df_value['amount_total'] >=1000), 'persona'] = 'Gary'
-            #Yara(Yellow): low value, regular donnor, active 
-            df_value.loc[(df_value['dormancy_years'] <=2) & (df_value['non_zero_counts'] > 1) & (df_value['amount_total'] <1000), 'persona'] = 'Yara'
-            #Ryan(Red): high value, young account
-            df_value.loc[(df_value['dormancy_years'] <=2) & (df_value['non_zero_counts'] == 1) & (df_value['amount_total'] >=1000), 'persona'] = 'Ryan'
-            #Kaura(Light Green): low value, young accounts
-            df_value.loc[(df_value['dormancy_years'] <=2) & (df_value['non_zero_counts'] == 1) & (df_value['amount_total'] < 1000), 'persona'] = 'Laura'
-            #Peter(Purple): high value, regular donor, dormant
-            df_value.loc[(df_value['dormancy_years'] > 2) & (df_value['non_zero_counts'] > 1) & (df_value['amount_total'] >=1000), 'persona'] = 'Peter'
-            #Beth(Blue): high avlue, one-time, dormant
-            df_value.loc[(df_value['dormancy_years'] > 2) & (df_value['non_zero_counts'] == 1) & (df_value['amount_total'] >=1000), 'persona'] = 'Beth'
-            #Olivia: low value, dormant
-            df_value.loc[(df_value['dormancy_years'] > 2) & (df_value['non_zero_counts'] > 1) & (df_value['amount_total'] < 1000), 'persona'] = 'Olivia'
-            #Oliver: low value, dormant
-            df_value.loc[(df_value['dormancy_years'] > 2) & (df_value['non_zero_counts'] == 1) & (df_value['amount_total'] < 1000), 'persona'] = 'Oliver'
+            
+            # Calculate quantiles for amount_total and median for dormancy_years
+            amount_q33 = df_value['amount_total'].quantile(0.33)
+            amount_q67 = df_value['amount_total'].quantile(0.67)
+            dormancy_median = df_value['dormancy_years'].median()
+            
+            logger.debug(f'Amount quantiles: 33% = {amount_q33:.2f}, 67% = {amount_q67:.2f}')
+            logger.debug(f'Dormancy median: {dormancy_median:.2f}')
+            
+            # Gary: top 33% amount_total and less than median dormancy_years
+            df_value.loc[(df_value['amount_total'] >= amount_q67) & (df_value['dormancy_years'] < dormancy_median), 'persona'] = 'Gary'
+            
+            # Yara: lowest third quantile of amount_total and less than median dormancy_years
+            df_value.loc[(df_value['amount_total'] <= amount_q33) & (df_value['dormancy_years'] < dormancy_median), 'persona'] = 'Yara'
+            
+            # Ryan: middle third amount_total and less than median dormancy_years
+            df_value.loc[(df_value['amount_total'] > amount_q33) & (df_value['amount_total'] < amount_q67) & (df_value['dormancy_years'] < dormancy_median), 'persona'] = 'Ryan'
+            
+            # Laura: top 33% amount_total and greater than or equal to median dormancy_years
+            df_value.loc[(df_value['amount_total'] >= amount_q67) & (df_value['dormancy_years'] >= dormancy_median), 'persona'] = 'Laura'
+            
+            # Peter: middle third amount_total and greater than or equal to median dormancy_years
+            df_value.loc[(df_value['amount_total'] > amount_q33) & (df_value['amount_total'] < amount_q67) & (df_value['dormancy_years'] >= dormancy_median), 'persona'] = 'Peter'
+            
+            # Beth: lowest third quantile of amount_total and greater than or equal to median dormancy_years
+            df_value.loc[(df_value['amount_total'] <= amount_q33) & (df_value['dormancy_years'] >= dormancy_median), 'persona'] = 'Beth'
+
+            # --- Ensure persona column is string and not overwritten ---
+            df_value['persona'] = df_value['persona'].astype(str)
+            # Remove rows where persona is nan or 'nan'
+            df_value = df_value[df_value['persona'].notna() & (df_value['persona'] != 'nan')]
 
             logger.debug('Creating color group...')
-            #Organge: low value, dormant
-            df_value['group'] = 'Orange'
-            #Gold: high value, regular donnor, active
-            df_value.loc[(df_value['dormancy_years'] <=2) & (df_value['non_zero_counts'] > 1) & (df_value['amount_total'] >=1000), 'group'] = 'Gold'
-            #Yellow: low value, regular donnor, active 
-            df_value.loc[(df_value['dormancy_years'] <=2) & (df_value['non_zero_counts'] > 1) & (df_value['amount_total'] <1000), 'group'] = 'Yellow'
-            #Red: high value, young account
-            df_value.loc[(df_value['dormancy_years'] <=2) & (df_value['non_zero_counts'] == 1) & (df_value['amount_total'] >=1000), 'group'] = 'Red'
-            #Green: low value, young accounts
-            df_value.loc[(df_value['dormancy_years'] <=2) & (df_value['non_zero_counts'] == 1) & (df_value['amount_total'] < 1000), 'group'] = 'Light Green'
-            #Purple: high value, regular donor, dormant
-            df_value.loc[(df_value['dormancy_years'] > 2) & (df_value['non_zero_counts'] > 1) & (df_value['amount_total'] >=1000), 'group'] = 'Purple'
-            #Blue: high avlue, one-time, dormant
-            df_value.loc[(df_value['dormancy_years'] > 2) & (df_value['non_zero_counts'] == 1) & (df_value['amount_total'] >=1000), 'group'] = 'Blue'
+            # Assign colors based on new quantile-based personas
+            # Gary: top 33% amount, low dormancy - Gold
+            df_value.loc[df_value['persona'] == 'Gary', 'group'] = 'Gold'
+            
+            # Yara: lowest 33% amount, low dormancy - Light Blue
+            df_value.loc[df_value['persona'] == 'Yara', 'group'] = 'Light Blue'
+            
+            # Ryan: middle 33% amount, low dormancy - Green
+            df_value.loc[df_value['persona'] == 'Ryan', 'group'] = 'Green'
+            
+            # Laura: top 33% amount, high dormancy - Purple
+            df_value.loc[df_value['persona'] == 'Laura', 'group'] = 'Purple'
+            
+            # Peter: middle 33% amount, high dormancy - Dark Blue
+            df_value.loc[df_value['persona'] == 'Peter', 'group'] = 'Dark Blue'
+            
+            # Beth: lowest 33% amount, high dormancy - Red
+            df_value.loc[df_value['persona'] == 'Beth', 'group'] = 'Red'
 
             df_mrg = acc.merge(df_value, left_on = "Id", right_on = opp_id, how = 'left')
             ################################ OUTPUT ##################################
@@ -289,18 +298,162 @@ class Persona_Analysis:
 
             # visualizations
             logger.debug('   Compiling graph pdf')
-            #pdf = PdfPages(path+f"/donor_histogram_{str_current_datetime}.pdf")
-            for i in ['amount_total','non_zero_counts', 'dormancy_years']:
-                df_value[i].hist()
-                # fig1.get_figure() 
-                plt.title(i)
-                plt.grid()
-                plt.xlabel('value')
-                plt.ylabel('Count')
+            
+            # Create first page: Overall Donor Statistics (3 subplots)
+            fig1, axes1 = plt.subplots(1, 3, figsize=(18, 6))
+            fig1.suptitle('Overall Donor Statistics', fontsize=16, fontweight='bold', y=0.95)
+            
+            for i, col in enumerate(['amount_total','non_zero_counts', 'dormancy_years']):
+                df_value[col].hist(ax=axes1[i])
+                axes1[i].set_title(col)
+                axes1[i].grid()
+                axes1[i].set_xlabel('value')
+                axes1[i].set_ylabel('Count')
+                # Format axes to avoid scientific notation
+                if col == 'amount_total':
+                    axes1[i].xaxis.set_major_formatter(plt.FuncFormatter(lambda x, p: f'${x:,.0f}' if x >= 1000 else f'${x:.0f}'))
+                    axes1[i].yaxis.set_major_formatter(plt.FuncFormatter(lambda x, p: f'{x:,.0f}' if x >= 1000 else f'{x:.0f}'))
+                else:
+                    axes1[i].xaxis.set_major_formatter(plt.FuncFormatter(lambda x, p: f'{x:,.0f}' if x >= 1000 else f'{x:.0f}'))
+                    axes1[i].yaxis.set_major_formatter(plt.FuncFormatter(lambda x, p: f'{x:,.0f}' if x >= 1000 else f'{x:.0f}'))
+            
+            plt.tight_layout()
+            pdf.savefig()
+            plt.close()
+
+            # Create persona donation behavior visualizations
+            logger.debug('   Creating persona donation behavior visualizations')
+            
+            # Persona definitions with colors for reference (quantile-based)
+            persona_definitions = {
+                'Gary': {'description': 'Top 33% amount, low dormancy (high value, active donors)', 'color': 'gold'},
+                'Yara': {'description': 'Lowest 33% amount, low dormancy (low value, active donors)', 'color': 'lightblue'},
+                'Ryan': {'description': 'Middle 33% amount, low dormancy (medium value, active donors)', 'color': 'green'},
+                'Laura': {'description': 'Top 33% amount, high dormancy (high value, dormant donors)', 'color': 'purple'},
+                'Peter': {'description': 'Middle 33% amount, high dormancy (medium value, dormant donors)', 'color': 'darkblue'},
+                'Beth': {'description': 'Lowest 33% amount, high dormancy (low value, dormant donors)', 'color': 'red'}
+            }
+            
+            # Filter out personas that don't exist in the data
+            existing_personas = df_value['persona'].dropna().unique()
+            logger.debug(f'   Found personas in data: {existing_personas}')
+            
+            if len(existing_personas) > 0:
+                # Create comprehensive persona analysis visualizations
+                fig, axes = plt.subplots(2, 2, figsize=(18, 12))
+                
+                # 1. Total Amount Donated by Persona (Bar Chart)
+                persona_amounts = df_value.groupby('persona')['amount_total'].sum().sort_values(ascending=False)
+                # Use consistent colors from persona definitions
+                colors = [persona_definitions[persona]['color'] for persona in persona_amounts.index]
+                axes[0, 0].bar(persona_amounts.index, persona_amounts.values, color=colors, alpha=0.7)
+                axes[0, 0].set_title('Total Amount Donated by Persona', fontweight='bold')
+                axes[0, 0].set_xlabel('Persona')
+                axes[0, 0].set_ylabel('Total Amount ($)')
+                axes[0, 0].tick_params(axis='x', rotation=45)
+                axes[0, 0].grid(True, alpha=0.3)
+                # Format y-axis to avoid scientific notation
+                axes[0, 0].yaxis.set_major_formatter(plt.FuncFormatter(lambda x, p: f'${x:,.0f}' if x >= 1000 else f'${x:.0f}'))
+                
+                # Add value labels on bars
+                for i, v in enumerate(persona_amounts.values):
+                    axes[0, 0].text(i, v + max(persona_amounts.values) * 0.01, f'${v:,.0f}', 
+                                   ha='center', va='bottom', fontweight='bold')
+                
+                # 2. Number of Non-Zero Donations by Persona (Bar Chart)
+                persona_counts = df_value.groupby('persona')['non_zero_counts'].sum().sort_values(ascending=False)
+                # Use consistent colors from persona definitions
+                colors = [persona_definitions[persona]['color'] for persona in persona_counts.index]
+                axes[0, 1].bar(persona_counts.index, persona_counts.values, color=colors, alpha=0.7)
+                axes[0, 1].set_title('Number of Non-Zero Donations by Persona', fontweight='bold')
+                axes[0, 1].set_xlabel('Persona')
+                axes[0, 1].set_ylabel('Number of Donations')
+                axes[0, 1].tick_params(axis='x', rotation=45)
+                axes[0, 1].grid(True, alpha=0.3)
+                # Format y-axis to avoid scientific notation
+                axes[0, 1].yaxis.set_major_formatter(plt.FuncFormatter(lambda x, p: f'{x:,.0f}' if x >= 1000 else f'{x:.0f}'))
+                
+                # Add value labels on bars
+                for i, v in enumerate(persona_counts.values):
+                    axes[0, 1].text(i, v + max(persona_counts.values) * 0.01, f'{v:,.0f}', 
+                                   ha='center', va='bottom', fontweight='bold')
+                
+                # 3. Average Amount per Donation by Persona (Bar Chart)
+                persona_avg = df_value.groupby('persona')['amount_total'].mean().sort_values(ascending=False)
+                # Use consistent colors from persona definitions
+                colors = [persona_definitions[persona]['color'] for persona in persona_avg.index]
+                axes[1, 0].bar(persona_avg.index, persona_avg.values, color=colors, alpha=0.7)
+                axes[1, 0].set_title('Average Amount per Donation by Persona', fontweight='bold')
+                axes[1, 0].set_xlabel('Persona')
+                axes[1, 0].set_ylabel('Average Amount ($)')
+                axes[1, 0].tick_params(axis='x', rotation=45)
+                axes[1, 0].grid(True, alpha=0.3)
+                # Format y-axis to avoid scientific notation
+                axes[1, 0].yaxis.set_major_formatter(plt.FuncFormatter(lambda x, p: f'${x:,.0f}' if x >= 1000 else f'${x:.0f}'))
+                
+                # Add value labels on bars
+                for i, v in enumerate(persona_avg.values):
+                    axes[1, 0].text(i, v + max(persona_avg.values) * 0.01, f'${v:,.0f}', 
+                                   ha='center', va='bottom', fontweight='bold')
+                
+                # 4. Persona Definitions Table
+                axes[1, 1].set_title('Persona Definitions', fontweight='bold', fontsize=14)
+                axes[1, 1].axis('off')  # Hide axes for table
+                
+                # Create table data
+                table_data = []
+                headers = ['Persona', 'Color', 'Description']
+                
+                for persona, info in persona_definitions.items():
+                    table_data.append([persona, info['color'], info['description']])
+                
+                # Create the table
+                table = axes[1, 1].table(cellText=table_data, colLabels=headers, 
+                                        cellLoc='left', loc='center',
+                                        colWidths=[0.15, 0.15, 0.7])
+                
+                # Style the table
+                table.auto_set_font_size(False)
+                table.set_fontsize(10)
+                table.scale(1, 2)  # Adjust row height
+                
+                # Color the header row
+                for i in range(len(headers)):
+                    table[(0, i)].set_facecolor('#E6E6E6')
+                    table[(0, i)].set_text_props(weight='bold')
+                
+                # Color the persona cells with their respective colors
+                for i, (persona, info) in enumerate(persona_definitions.items(), 1):
+                    # Color the persona name cell
+                    table[(i, 0)].set_facecolor(info['color'])
+                    table[(i, 0)].set_text_props(weight='bold', color='white')
+                    
+                    # Color the color name cell with the actual color
+                    table[(i, 1)].set_facecolor(info['color'])
+                    table[(i, 1)].set_text_props(weight='bold', color='white')
+                    
+                    # Style the description cell
+                    table[(i, 2)].set_facecolor('#F8F8F8')
+                
+                plt.tight_layout()
                 pdf.savefig()
-                # plt.show()
                 plt.close()
-            #pdf.close()
+                
+                # Create summary statistics table
+                persona_stats = df_value.groupby('persona').agg({
+                    'amount_total': ['sum', 'mean', 'count'],
+                    'non_zero_counts': ['sum', 'mean'],
+                    'dormancy_years': 'mean'
+                }).round(2)
+                
+                # Flatten column names
+                persona_stats.columns = ['Total_Amount', 'Avg_Amount', 'Account_Count', 'Total_Donations', 'Avg_Donations', 'Avg_Dormancy']
+                
+                logger.debug('   Persona donation behavior visualizations created successfully')
+                logger.debug(f'   Persona statistics summary:\n{persona_stats}')
+                
+            else:
+                logger.warning('   No personas found in the data for visualization')
 
             # address visualization
             # initialize the map and store it in a m object

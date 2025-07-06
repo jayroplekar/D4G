@@ -8,22 +8,24 @@ HELP_TEXT = """
 Required Input Files and Columns:
 
 1. d4g_account.csv
-   - Columns: npo02__LastCloseDate__c, npo02__FirstCloseDate__c, Id, Account Record Type, First_Gift_Year__c
+   - Columns: npo02__LastCloseDate__c, Id
+   - Additional columns used: Account Record Type, First_Gift_Year__c
 
 2. d4g_opportunity.csv
-   - Columns: CloseDate, AccountId, Amount, Probability
+   - Columns: Amount, AccountId, CloseDate
+   - Additional columns used: Probability
 
 3. d4g_address.csv
    - Columns: npsp__Household_Account__c, npsp__MailingCity__c, npsp__MailingState__c
 
 4. campaign_monitor_extract.csv
-   - Columns: CAMPAIGN_NAME, CAMPAIGN_ID, NUM_OPENS, NUM_CLICKS
+   - Columns: Name, wbsendit__Campaign_ID__c, wbsendit__Num_Opens__c, wbsendit__Num_Clicks__c
 
 5. contact_extract.csv
-   - Columns: ID, GENDER, LAST_GIFT_DATE, TOTAL_GIFTS
+   - Columns: ID, goldenapp__Gender__c, npo02__LastCloseDate__c, npo02__TotalOppAmount__c
 
 6. email_tracking_extract.csv
-   - Columns: CAMPAIGN, CAMPAIGN_ID, CONTACT, ACTIVITY
+   - Columns: Name, wbsendit__Campaign_ID__c, wbsendit__Contact__c, wbsendit__Activity__c
 
 All files should be placed in the selected input folder.
 """

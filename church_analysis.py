@@ -78,8 +78,8 @@ class Church_Analysis:
         logger.info("=== CHURCH ANALYSIS STARTED ===")
         try:
             # Read the data
-            df_account = pd.read_csv(f'{input_dir}/d4g_account.csv')
-            df_opportunity = pd.read_csv(f'{input_dir}/d4g_opportunity.csv')
+            df_account = pd.read_csv(os.path.join(input_dir, 'd4g_account.csv'))
+            df_opportunity = pd.read_csv(os.path.join(input_dir, 'd4g_opportunity.csv'))
             
             # Process the data
             df_account = Church_Analysis.process_account_table(df_account)

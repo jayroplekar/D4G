@@ -1,0 +1,323 @@
+npsp__MailingState__c,npsp__MailingCity__c,0
+Alabama,Birmingham,8
+Alabama,Huntsville,1
+Alabama,Mobile,5
+Alabama,Montgomery,4
+Alabama,Tuscaloosa,1
+Alaska,Anchorage,2
+Alaska,Fairbanks,1
+Arizona,Apache Junction,1
+Arizona,Gilbert,1
+Arizona,Glendale,1
+Arizona,Mesa,2
+Arizona,Phoenix,7
+Arizona,Scottsdale,2
+Arizona,Tucson,11
+Arkansas,Little Rock,1
+Arkansas,North Little Rock,2
+California,Alhambra,1
+California,Bakersfield,2
+California,Berkeley,1
+California,Brea,2
+California,Burbank,2
+California,Carlsbad,1
+California,Chico,1
+California,Chula Vista,2
+California,Concord,1
+California,Corona,1
+California,Escondido,1
+California,Fresno,5
+California,Fullerton,1
+California,Hayward,1
+California,Huntington Beach,2
+California,Irvine,2
+California,Lancaster,1
+California,Long Beach,1
+California,Los Angeles,13
+California,Modesto,2
+California,Mountain View,1
+California,Newport Beach,3
+California,Oakland,6
+California,Orange,2
+California,Oxnard,1
+California,Palmdale,2
+California,Pasadena,4
+California,Pomona,1
+California,Redwood City,1
+California,Riverside,2
+California,Sacramento,8
+California,San Bernardino,3
+California,San Diego,8
+California,San Francisco,7
+California,San Jose,5
+California,San Luis Obispo,1
+California,San Rafael,1
+California,Santa Ana,1
+California,Santa Barbara,2
+California,Santa Monica,2
+California,South Lake Tahoe,1
+California,Stockton,1
+California,Torrance,1
+California,Ventura,1
+California,Visalia,1
+Colorado,Arvada,1
+Colorado,Aurora,2
+Colorado,Boulder,1
+Colorado,Colorado Springs,8
+Colorado,Denver,2
+Colorado,Englewood,1
+Colorado,Fort Collins,1
+Colorado,Grand Junction,3
+Colorado,Greeley,1
+Colorado,Pueblo,2
+Connecticut,Bridgeport,1
+Connecticut,Danbury,1
+Connecticut,Hartford,5
+Connecticut,New Haven,5
+Connecticut,Norwalk,1
+Delaware,Newark,1
+Delaware,Wilmington,1
+District of Columbia,Washington,50
+Florida,Boca Raton,2
+Florida,Bradenton,3
+Florida,Brooksville,2
+Florida,Daytona Beach,3
+Florida,Fort Lauderdale,8
+Florida,Fort Myers,6
+Florida,Fort Pierce,1
+Florida,Gainesville,2
+Florida,Hialeah,2
+Florida,Hollywood,1
+Florida,Jacksonville,8
+Florida,Lake Worth,1
+Florida,Lakeland,1
+Florida,Largo,1
+Florida,Melbourne,2
+Florida,Miami,7
+Florida,Miami Beach,1
+Florida,Naples,3
+Florida,North Port,1
+Florida,Ocala,2
+Florida,Orlando,5
+Florida,Palm Bay,1
+Florida,Panama City,2
+Florida,Pensacola,4
+Florida,Saint Augustine,1
+Florida,Sarasota,3
+Florida,Tallahassee,2
+Florida,Tampa,8
+Florida,West Palm Beach,1
+Florida,Winter Haven,1
+Georgia,Alpharetta,1
+Georgia,Atlanta,9
+Georgia,Augusta,1
+Georgia,Columbus,2
+Georgia,Decatur,1
+Georgia,Duluth,1
+Georgia,Gainesville,1
+Georgia,Lawrenceville,1
+Georgia,Macon,3
+Georgia,Savannah,3
+Georgia,Valdosta,1
+Hawaii,Honolulu,2
+Idaho,Boise,5
+Idaho,Pocatello,2
+Illinois,Carol Stream,2
+Illinois,Champaign,1
+Illinois,Chicago,11
+Illinois,Decatur,2
+Illinois,Evanston,1
+Illinois,Joliet,1
+Illinois,Naperville,2
+Illinois,Peoria,3
+Illinois,Schaumburg,2
+Illinois,Springfield,6
+Indiana,Evansville,3
+Indiana,Fort Wayne,4
+Indiana,Indianapolis,5
+Indiana,Jeffersonville,1
+Indiana,Lafayette,3
+Indiana,Muncie,1
+Indiana,South Bend,8
+Indiana,Terre Haute,4
+Iowa,Davenport,2
+Iowa,Des Moines,9
+Iowa,Sioux City,1
+Iowa,Waterloo,1
+Kansas,Kansas City,2
+Kansas,Shawnee Mission,2
+Kansas,Topeka,6
+Kansas,Wichita,6
+Kentucky,Lexington,7
+Kentucky,London,1
+Kentucky,Louisville,6
+Louisiana,Alexandria,1
+Louisiana,Baton Rouge,7
+Louisiana,Monroe,1
+Louisiana,New Orleans,6
+Louisiana,Shreveport,3
+Maine,Portland,2
+Maryland,Annapolis,1
+Maryland,Baltimore,4
+Maryland,Frederick,1
+Maryland,Gaithersburg,2
+Maryland,Hagerstown,2
+Maryland,Laurel,2
+Maryland,Rockville,1
+Maryland,Silver Spring,1
+Massachusetts,Boston,3
+Massachusetts,Brockton,1
+Massachusetts,Lynn,1
+Massachusetts,Springfield,1
+Massachusetts,Waltham,1
+Massachusetts,Woburn,1
+Massachusetts,Worcester,1
+Michigan,Ann Arbor,1
+Michigan,Battle Creek,1
+Michigan,Dearborn,1
+Michigan,Detroit,4
+Michigan,Flint,1
+Michigan,Grand Rapids,1
+Michigan,Kalamazoo,4
+Michigan,Lansing,4
+Michigan,Muskegon,1
+Minnesota,Duluth,2
+Minnesota,Minneapolis,12
+Minnesota,Saint Cloud,1
+Minnesota,Saint Paul,9
+Minnesota,Young America,4
+Mississippi,Jackson,3
+Missouri,Columbia,2
+Missouri,Jefferson City,1
+Missouri,Kansas City,5
+Missouri,Saint Joseph,1
+Missouri,Saint Louis,5
+Missouri,Springfield,3
+Montana,Billings,2
+Montana,Missoula,2
+Nebraska,Lincoln,1
+Nebraska,Omaha,7
+Nevada,Carson City,1
+Nevada,Las Vegas,13
+Nevada,Reno,4
+Nevada,Sparks,1
+New Jersey,Camden,1
+New Jersey,Elizabeth,1
+New Jersey,Newark,1
+New Jersey,Paterson,2
+New Jersey,Trenton,2
+New Mexico,Albuquerque,5
+New Mexico,Santa Fe,1
+New York,Albany,7
+New York,Bronx,1
+New York,Brooklyn,3
+New York,Buffalo,8
+New York,Elmira,1
+New York,Flushing,2
+New York,Hicksville,1
+New York,Jamaica,4
+New York,New York City,19
+New York,Rochester,4
+New York,Syracuse,1
+New York,White Plains,2
+New York,Yonkers,1
+North Carolina,Asheville,1
+North Carolina,Charlotte,7
+North Carolina,Durham,1
+North Carolina,Greensboro,3
+North Carolina,High Point,1
+North Carolina,Raleigh,4
+North Dakota,Fargo,1
+Ohio,Akron,4
+Ohio,Canton,3
+Ohio,Cincinnati,7
+Ohio,Cleveland,4
+Ohio,Columbus,6
+Ohio,Dayton,2
+Ohio,Hamilton,1
+Ohio,Lima,1
+Ohio,Mansfield,1
+Ohio,Springfield,1
+Ohio,Toledo,3
+Ohio,Warren,1
+Ohio,Youngstown,2
+Oklahoma,Edmond,1
+Oklahoma,Norman,2
+Oklahoma,Oklahoma City,13
+Oklahoma,Tulsa,7
+Oregon,Eugene,1
+Oregon,Portland,11
+Pennsylvania,Erie,4
+Pennsylvania,Harrisburg,2
+Pennsylvania,Johnstown,1
+Pennsylvania,Lancaster,3
+Pennsylvania,Levittown,2
+Pennsylvania,Philadelphia,9
+Pennsylvania,Pittsburgh,5
+Pennsylvania,Reading,2
+Pennsylvania,Valley Forge,1
+Pennsylvania,Wilkes Barre,4
+Rhode Island,Providence,1
+South Carolina,Anderson,1
+South Carolina,Charleston,2
+South Carolina,Columbia,2
+South Carolina,Florence,2
+South Carolina,Greenville,1
+South Carolina,Myrtle Beach,1
+South Carolina,Spartanburg,1
+South Dakota,Sioux Falls,2
+Tennessee,Chattanooga,2
+Tennessee,Johnson City,2
+Tennessee,Knoxville,5
+Tennessee,Memphis,7
+Tennessee,Nashville,3
+Texas,Amarillo,6
+Texas,Austin,3
+Texas,Dallas,10
+Texas,El Paso,17
+Texas,Fort Worth,7
+Texas,Galveston,1
+Texas,Houston,21
+Texas,Humble,1
+Texas,Irving,2
+Texas,Laredo,1
+Texas,Longview,1
+Texas,Lubbock,2
+Texas,Mesquite,1
+Texas,Midland,1
+Texas,Odessa,1
+Texas,Pasadena,1
+Texas,Round Rock,1
+Texas,San Antonio,6
+Texas,Spring,1
+Texas,Texarkana,1
+Texas,Waco,3
+Utah,Ogden,1
+Utah,Salt Lake City,4
+Virginia,Arlington,7
+Virginia,Charlottesville,3
+Virginia,Chesapeake,2
+Virginia,Fredericksburg,1
+Virginia,Hampton,1
+Virginia,Herndon,1
+Virginia,Lynchburg,1
+Virginia,Manassas,2
+Virginia,Newport News,1
+Virginia,Norfolk,4
+Virginia,Reston,1
+Virginia,Richmond,9
+Virginia,Roanoke,3
+Virginia,Virginia Beach,3
+Washington,Bellevue,1
+Washington,Kent,1
+Washington,Seattle,12
+Washington,Spokane,1
+Washington,Tacoma,4
+Washington,Vancouver,1
+West Virginia,Charleston,1
+West Virginia,Huntington,5
+West Virginia,Morgantown,2
+Wisconsin,Appleton,2
+Wisconsin,Green Bay,2
+Wisconsin,Madison,6
+Wisconsin,Milwaukee,2
