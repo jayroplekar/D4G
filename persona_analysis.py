@@ -300,15 +300,22 @@ class Persona_Analysis:
             logger.debug('   Compiling graph pdf')
             
             # Create first page: Overall Donor Statistics (3 subplots)
-            fig1, axes1 = plt.subplots(1, 3, figsize=(18, 6))
-            fig1.suptitle('Overall Donor Statistics', fontsize=16, fontweight='bold', y=0.95)
+            fig1, axes1 = plt.subplots(1, 3, figsize=(20, 10))
+            fig1.suptitle('Donor Portfolio Overview', fontsize=18, fontweight='bold', y=0.98)
+            
+            # Business-friendly titles for each subplot
+            title_mapping = {
+                'amount_total': 'Total Donation Amount Distribution',
+                'non_zero_counts': 'Donation Frequency Distribution', 
+                'dormancy_years': 'Donor Engagement Timeline'
+            }
             
             for i, col in enumerate(['amount_total','non_zero_counts', 'dormancy_years']):
                 df_value[col].hist(ax=axes1[i])
-                axes1[i].set_title(col)
-                axes1[i].grid()
-                axes1[i].set_xlabel('value')
-                axes1[i].set_ylabel('Count')
+                axes1[i].set_title(title_mapping[col], fontweight='bold', fontsize=12)
+                axes1[i].grid(True, alpha=0.3)
+                axes1[i].set_xlabel('Value')
+                axes1[i].set_ylabel('Number of Donors')
                 # Format axes to avoid scientific notation
                 if col == 'amount_total':
                     axes1[i].xaxis.set_major_formatter(plt.FuncFormatter(lambda x, p: f'${x:,.0f}' if x >= 1000 else f'${x:.0f}'))
@@ -327,8 +334,8 @@ class Persona_Analysis:
             # Persona definitions with colors for reference (quantile-based)
             persona_definitions = {
                 'Gary': {'description': 'Top 33% amount, low dormancy (high value, active donors)', 'color': 'gold'},
-                'Yara': {'description': 'Lowest 33% amount, low dormancy (low value, active donors)', 'color': 'lightblue'},
                 'Ryan': {'description': 'Middle 33% amount, low dormancy (medium value, active donors)', 'color': 'green'},
+                'Yara': {'description': 'Lowest 33% amount, low dormancy (low value, active donors)', 'color': 'lightblue'},
                 'Laura': {'description': 'Top 33% amount, high dormancy (high value, dormant donors)', 'color': 'purple'},
                 'Peter': {'description': 'Middle 33% amount, high dormancy (medium value, dormant donors)', 'color': 'darkblue'},
                 'Beth': {'description': 'Lowest 33% amount, high dormancy (low value, dormant donors)', 'color': 'red'}
@@ -340,14 +347,15 @@ class Persona_Analysis:
             
             if len(existing_personas) > 0:
                 # Create comprehensive persona analysis visualizations
-                fig, axes = plt.subplots(2, 2, figsize=(18, 12))
+                fig, axes = plt.subplots(2, 2, figsize=(20, 10))
+                fig.suptitle('Persona Donation Analysis', fontsize=18, fontweight='bold', y=0.95)
                 
                 # 1. Total Amount Donated by Persona (Bar Chart)
                 persona_amounts = df_value.groupby('persona')['amount_total'].sum().sort_values(ascending=False)
                 # Use consistent colors from persona definitions
                 colors = [persona_definitions[persona]['color'] for persona in persona_amounts.index]
                 axes[0, 0].bar(persona_amounts.index, persona_amounts.values, color=colors, alpha=0.7)
-                axes[0, 0].set_title('Total Amount Donated by Persona', fontweight='bold')
+                axes[0, 0].set_title('Total Donation Amount by Persona', fontweight='bold')
                 axes[0, 0].set_xlabel('Persona')
                 axes[0, 0].set_ylabel('Total Amount ($)')
                 axes[0, 0].tick_params(axis='x', rotation=45)
@@ -365,9 +373,9 @@ class Persona_Analysis:
                 # Use consistent colors from persona definitions
                 colors = [persona_definitions[persona]['color'] for persona in persona_counts.index]
                 axes[0, 1].bar(persona_counts.index, persona_counts.values, color=colors, alpha=0.7)
-                axes[0, 1].set_title('Number of Non-Zero Donations by Persona', fontweight='bold')
+                axes[0, 1].set_title('Donation Activity by Persona', fontweight='bold')
                 axes[0, 1].set_xlabel('Persona')
-                axes[0, 1].set_ylabel('Number of Donations')
+                axes[0, 1].set_ylabel('Total Donation Transactions')
                 axes[0, 1].tick_params(axis='x', rotation=45)
                 axes[0, 1].grid(True, alpha=0.3)
                 # Format y-axis to avoid scientific notation
@@ -383,9 +391,9 @@ class Persona_Analysis:
                 # Use consistent colors from persona definitions
                 colors = [persona_definitions[persona]['color'] for persona in persona_avg.index]
                 axes[1, 0].bar(persona_avg.index, persona_avg.values, color=colors, alpha=0.7)
-                axes[1, 0].set_title('Average Amount per Donation by Persona', fontweight='bold')
+                axes[1, 0].set_title('Average Gift Size by Persona', fontweight='bold')
                 axes[1, 0].set_xlabel('Persona')
-                axes[1, 0].set_ylabel('Average Amount ($)')
+                axes[1, 0].set_ylabel('Average Gift Amount ($)')
                 axes[1, 0].tick_params(axis='x', rotation=45)
                 axes[1, 0].grid(True, alpha=0.3)
                 # Format y-axis to avoid scientific notation
@@ -397,7 +405,7 @@ class Persona_Analysis:
                                    ha='center', va='bottom', fontweight='bold')
                 
                 # 4. Persona Definitions Table
-                axes[1, 1].set_title('Persona Definitions', fontweight='bold', fontsize=14)
+                axes[1, 1].set_title('Donor Persona Profiles', fontweight='bold', fontsize=14, y=0.85)
                 axes[1, 1].axis('off')  # Hide axes for table
                 
                 # Create table data
@@ -434,6 +442,74 @@ class Persona_Analysis:
                     
                     # Style the description cell
                     table[(i, 2)].set_facecolor('#F8F8F8')
+                
+                plt.tight_layout()
+                pdf.savefig()
+                plt.close()
+                
+                # Create Top 10 Donors by Persona table
+                logger.debug('   Creating top 10 donors by persona table')
+                
+                # Create a new figure for the top donors table
+                fig_top, ax_top = plt.subplots(figsize=(20, 20))
+                ax_top.set_title('Top 10 Donors by Persona', fontweight='bold', fontsize=16, pad=30, y=0.98)
+                ax_top.axis('off')
+                
+                # Get top 10 donors for each persona
+                top_donors_data = []
+                headers = ['Persona', 'Rank', 'Account ID', 'Total Amount ($)', 'Donation Count', 'Dormancy (Years)']
+                
+                for persona in persona_definitions.keys():
+                    persona_data = df_value[df_value['persona'] == persona].copy()
+                    if len(persona_data) > 0:
+                        # Sort by amount_total and get top 10
+                        top_10 = persona_data.nlargest(10, 'amount_total')[['AccountId', 'amount_total', 'non_zero_counts', 'dormancy_years']]
+                        
+                        for rank, (_, row) in enumerate(top_10.iterrows(), 1):
+                            # Truncate AccountId for display
+                            account_id = row['AccountId'][:15] + '...' if len(row['AccountId']) > 15 else row['AccountId']
+                            top_donors_data.append([
+                                persona,
+                                f"#{rank}",
+                                account_id,
+                                f"${row['amount_total']:,.0f}",
+                                f"{row['non_zero_counts']:,.0f}",
+                                f"{row['dormancy_years']:.1f}"
+                            ])
+                
+                # Create the table
+                if top_donors_data:
+                    table_top = ax_top.table(cellText=top_donors_data, colLabels=headers,
+                                           cellLoc='center', loc='center',
+                                           colWidths=[0.15, 0.08, 0.25, 0.15, 0.15, 0.12],
+                                           bbox=[0.05, 0.05, 0.9, 0.85])  # Position table below title
+                    
+                    # Style the table
+                    table_top.auto_set_font_size(False)
+                    table_top.set_fontsize(9)
+                    table_top.scale(1, 1.5)
+                    
+                    # Color the header row
+                    for i in range(len(headers)):
+                        table_top[(0, i)].set_facecolor('#E6E6E6')
+                        table_top[(0, i)].set_text_props(weight='bold')
+                    
+                    # Color rows by persona
+                    current_persona = None
+                    for i, row_data in enumerate(top_donors_data, 1):
+                        persona = row_data[0]
+                        if persona != current_persona:
+                            current_persona = persona
+                            color = persona_definitions[persona]['color']
+                        
+                        # Color the persona cell
+                        table_top[(i, 0)].set_facecolor(color)
+                        table_top[(i, 0)].set_text_props(weight='bold', color='white')
+                        
+                        # Alternate row colors for other cells
+                        if i % 2 == 0:
+                            for j in range(1, len(headers)):
+                                table_top[(i, j)].set_facecolor('#F8F8F8')
                 
                 plt.tight_layout()
                 pdf.savefig()
