@@ -69,6 +69,24 @@ def validate_inputs(logger, input_dir):
         logger.info("All campaign analysis input files validated successfully.")
     return all_ok
 
+#Attempt fancy color match like Persona analysis for campaigns but don't confuse colors and make them gradients
+def fancy_gradcolors(num_colors):
+    from matplotlib.colors import LinearSegmentedColormap
+
+    # Define your two contrasting colors that are not with Persona Colors
+    color2 = 'orange'
+    color1 = 'teal'
+
+    # Create a custom colormap from these two colors
+    custom_cmap = LinearSegmentedColormap.from_list("my_gradient", [color1, color2], N=256)
+
+    # We'll pick evenly spaced points along the colormap
+    gradient_colors = [custom_cmap(i / (num_colors - 1)) for i in range(num_colors)]
+
+    return gradient_colors
+
+
+
 class Campaign_Analysis:   
     def process_campaign(self, pdf, logger, output_dir, input_dir):
         logger.info("=== EMAIL CAMPAIGN ANALYSIS STARTED ===")
@@ -284,21 +302,52 @@ class Campaign_Analysis:
             plot_data = df_top.groupby('CAMPAIGN_ID')['avg_gifts_7d'].mean().reset_index()
 
             # Create new page 4 with 2 subfigures matching the size of first 3 pages
-            fig, axes = plt.subplots(1, 2, figsize=(20, 10))
+            fig, axes = plt.subplots(2, 2, figsize=(20, 18))
             fig.suptitle('Email Campaign Analysis', fontsize=18, fontweight='bold', y=0.98)
+
+            #Finish the final table analysis here so that the colors can be used consistently in the bar charts
+            # Aggregate campaign performance by NUM_OPENS and NUM_CLICKS
+            campaign_performance = df.groupby('CAMPAIGN_ID').agg({
+                'CAMPAIGN_NAME': 'first',
+                'NUM_OPENS': 'sum',
+                'NUM_CLICKS': 'sum',
+                'NUM_RECIPIENTS': 'first'
+            }).reset_index()
+
+            # Get 5 highest and 5 lowest performing campaigns by NUM_OPENS (then NUM_CLICKS as tie-breaker)
+            highest_performing = df_campaign_monitor_extract.nlargest(n=5,columns=['NUM_OPENS', 'NUM_CLICKS']).sort_values(by=['NUM_OPENS', 'NUM_CLICKS'], ascending=[False, False])
+            lowest_performing = df_campaign_monitor_extract.nsmallest(n=5,columns=['NUM_OPENS', 'NUM_CLICKS']).sort_values(by=['NUM_OPENS', 'NUM_CLICKS'], ascending=[False, False])
+
+            # Combine for the table
+            summary_data = pd.concat([highest_performing, lowest_performing])
             
+            # Business-friendly names for the table
+            column_names = ['Campaign ID', 'Campaign Name', 'Opens', 'Clicks', '# of Recipients']
+            summary_data = summary_data[['CAMPAIGN_ID', 'CAMPAIGN_NAME', 'NUM_OPENS', 'NUM_CLICKS', 'NUM_RECIPIENTS']]
+
+            colorlist=fancy_gradcolors(len(summary_data))
+            summary_data['colors']=colorlist
+            campaign_color_map = summary_data.set_index('CAMPAIGN_ID')['colors'].to_dict()
+
+
             # First subfigure: Top 5 Email Campaigns by Opens
-            opened_counts_top5 = opened_counts.nlargest(5)
-            axes[0].bar(opened_counts_top5.index, opened_counts_top5.values, color='skyblue', alpha=0.7)
-            axes[0].set_title('Top 5 Email Campaigns by Opens', fontweight='bold', fontsize=14, pad=25)
-            axes[0].set_xlabel('Campaign ID')
-            axes[0].set_ylabel('Number of Opens')
-            axes[0].tick_params(axis='x', rotation=45)
-            axes[0].grid(True, alpha=0.3)
+            #opened_counts_top5 = opened_counts.nlargest(5)
+
+            #colors = opened_counts_top5.index.map(campaign_color_map).fillna('gray')
+         
+            colors=[campaign_color_map.get(campaign_id, 'gray') for campaign_id in highest_performing['CAMPAIGN_ID']]
+            opened_counts_top5 = highest_performing['NUM_OPENS']
+            #axes[0, 0].bar(opened_counts_top5.index, opened_counts_top5.values, color=colors, alpha=0.7)
+            axes[0, 0].bar(highest_performing['CAMPAIGN_ID'], highest_performing['NUM_OPENS'], color=colors, alpha=0.7)
+            axes[0, 0].set_title('Top 5 Email Campaigns by Opens', fontweight='bold', fontsize=14, pad=10)
+            axes[0, 0].set_xlabel('Campaign ID')
+            axes[0, 0].set_ylabel('Number of Opens')
+            axes[0, 0].tick_params(axis='x', rotation=45)
+            axes[0, 0].grid(True, alpha=0.3)
             
             # Add value labels on bars
             for i, v in enumerate(opened_counts_top5.values):
-                axes[0].text(i, v + max(opened_counts_top5.values) * 0.01, f'{v:,.0f}', 
+                axes[0, 0].text(i, v + max(opened_counts_top5.values) * 0.01, f'{v:,.0f}', 
                            ha='center', va='bottom', fontweight='bold')
             
             # Second subfigure: Top 5 Email Campaigns by Total Donations within 7 days
@@ -333,22 +382,79 @@ class Campaign_Analysis:
             sorted_campaigns = sorted(donation_totals_7d.items(), key=lambda x: x[1], reverse=True)
             campaign_ids_7d = [item[0] for item in sorted_campaigns]
             donation_values_7d = [item[1] for item in sorted_campaigns]
+
+            colors=[campaign_color_map.get(campaign_id, 'gray') for campaign_id in campaign_ids_7d]
             
-            axes[1].bar(campaign_ids_7d, donation_values_7d, color='lightgreen', alpha=0.7)
-            axes[1].set_title('Top 5 Email Campaigns by Total Donations within 7 days', fontweight='bold', fontsize=14, pad=25)
-            axes[1].set_xlabel('Campaign ID')
-            axes[1].set_ylabel('Total Donations ($)')
-            axes[1].tick_params(axis='x', rotation=45)
-            axes[1].grid(True, alpha=0.3)
+            axes[0, 1].bar(campaign_ids_7d, donation_values_7d, color=colors, alpha=0.7)
+            axes[0, 1].set_title('Top 5 Email Campaigns by Total Donations within 7 days', fontweight='bold', fontsize=14, pad=10)
+            axes[0, 1].set_xlabel('Campaign ID')
+            axes[0, 1].set_ylabel('Total Donations ($)')
+            axes[0, 1].tick_params(axis='x', rotation=45)
+            axes[0, 1].grid(True, alpha=0.3)
             
             # Format y-axis to avoid scientific notation
-            axes[1].yaxis.set_major_formatter(plt.FuncFormatter(lambda x, p: f'${x:,.0f}' if x >= 1000 else f'${x:.0f}'))
+            axes[0, 1].yaxis.set_major_formatter(plt.FuncFormatter(lambda x, p: f'${x:,.0f}' if x >= 1000 else f'${x:.0f}'))
             
             # Add value labels on bars
             for i, v in enumerate(donation_values_7d):
-                axes[1].text(i, v + max(donation_values_7d) * 0.01, f'${v:,.0f}', 
+                axes[0, 1].text(i, v + max(donation_values_7d) * 0.01, f'${v:,.0f}', 
                            ha='center', va='bottom', fontweight='bold')
+
+            # Subfigure 3: Campaigns with Lowest Opens and Highest Unsubscribes
+            # Aggregate opens and unsubscribes by campaign
+            campaign_engagement = df.groupby('CAMPAIGN_ID').agg({
+                'NUM_OPENS': 'sum',
+                'NUM_UNSUBSCRIBED': 'sum'
+            }).reset_index()
+
+            # Get top 5 campaigns with lowest opens
+
+            colors=[campaign_color_map.get(campaign_id, 'gray') for campaign_id in lowest_performing['CAMPAIGN_ID']]
+
+            # Get top 5 campaigns with highest unsubscribes
+            highest_unsubscribes = campaign_engagement.nlargest(5, 'NUM_UNSUBSCRIBED')
+
+
+            # Plotting lowest opens
+            axes[1, 0].bar(lowest_performing['CAMPAIGN_ID'], lowest_performing['NUM_OPENS'], color=colors, alpha=0.7)
+            axes[1, 0].set_title('Top 5 Campaigns with Lowest Opens', fontweight='bold', fontsize=14, pad=15)
+            axes[1, 0].set_xlabel('Campaign ID')
+            axes[1, 0].set_ylabel('Total Opens')
+            axes[1, 0].tick_params(axis='x', rotation=45)
+            axes[1, 0].grid(True, alpha=0.3)
+            for i, v in enumerate(lowest_performing['NUM_OPENS']):
+                axes[1, 0].text(i, v + max(lowest_performing['NUM_OPENS']) * 0.01, f'{v:,.0f}', ha='center', va='bottom', fontweight='bold')
+
+            # Subfigure 4: Summary Table of Highest and Lowest Performing Campaigns
             
+
+            axes[1, 1].axis('off') # Hide axes for the table
+
+            axes[1, 1].set_title('Campaign Performance Summary (Top/Bottom 4 by Opens/Clicks)', fontweight='bold', fontsize=14, pad=15)
+
+            # Format numerical columns as integers
+            formatted_data = summary_data[['CAMPAIGN_ID', 'CAMPAIGN_NAME', 'NUM_OPENS', 'NUM_CLICKS', 'NUM_RECIPIENTS']].copy()
+
+            for col in ['NUM_OPENS', 'NUM_CLICKS', 'NUM_RECIPIENTS']:
+                formatted_data[col] = formatted_data[col].apply(lambda x: f'{int(x):,}')
+
+            table = axes[1, 1].table(cellText=formatted_data.values,
+                                      colLabels=column_names,
+                                      cellLoc='center', loc='top', bbox=[0, 0, 1, 1]) # Adjust bbox to reduce space
+            
+            table.auto_set_font_size(False)
+            table.set_fontsize(10)
+            table.scale(1, 2) # Adjust scale to reduce padding
+
+            # Color the header row
+            for i in range(len(column_names)):
+                table[(0, i)].set_facecolor('#E6E6E6')
+                table[(0, i)].set_text_props(weight='bold')
+                row=1
+                for color in colorlist:
+                    table[(row, i)].set_facecolor(color)
+                    row+=1
+
             plt.tight_layout()
             pdf.savefig()
             plt.close()

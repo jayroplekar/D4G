@@ -72,7 +72,7 @@ def run_combined(input_var,output_var):
     try:
         # Pass output_dir and input_dir as command-line arguments
         result = subprocess.run(
-            [sys.executable, os.path.join(os.path.dirname(__file__), "combined.py"), output_dir, input_dir],
+            [sys.executable, os.path.join(os.path.dirname(__file__), "combined.py"), input_dir, output_dir],
             cwd=os.getcwd(),
             env=env,
             capture_output=True,

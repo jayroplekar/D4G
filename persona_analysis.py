@@ -314,7 +314,12 @@ class Persona_Analysis:
                 df_value[col].hist(ax=axes1[i])
                 axes1[i].set_title(title_mapping[col], fontweight='bold', fontsize=12)
                 axes1[i].grid(True, alpha=0.3)
-                axes1[i].set_xlabel('Value')
+                x_label_mapping = {
+                    'amount_total': 'Total Amount',
+                    'non_zero_counts': 'Number of Donations',
+                    'dormancy_years': 'Dormancy Years'
+                }
+                axes1[i].set_xlabel(x_label_mapping.get(col, 'Value'))
                 axes1[i].set_ylabel('Number of Donors')
                 # Format axes to avoid scientific notation
                 if col == 'amount_total':

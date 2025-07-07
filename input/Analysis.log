@@ -1,0 +1,4 @@
+2025-07-06 14:38:20,756 - INFO - Timestamp: 2025-07-06 14:38:20
+2025-07-06 14:38:20,757 - INFO - Input folder: /Data/srujan/WIP/D4G/TestOutput
+2025-07-06 14:38:20,757 - INFO - Output folder: /Data/srujan/WIP/D4G/input
+2025-07-06 14:38:20,757 - ERROR - Missing required input files: ['d4g_account.csv', 'd4g_opportunity.csv', 'd4g_address.csv', 'campaign_monitor_extract.csv', 'contact_extract.csv', 'email_tracking_extract.csv']

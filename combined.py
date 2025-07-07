@@ -11,16 +11,18 @@ from persona_analysis import Persona_Analysis, validate_inputs as validate_perso
 
 current_datetime = datetime.datetime.now().strftime("%Y_%m_%d_%H_%M")
 
+print(str(sys.argv))
 # Get input and output folders from command line arguments or environment variables
 if len(sys.argv) > 2:
-    output_dir = sys.argv[1]  # First argument is output directory
-    input_dir = sys.argv[2]   # Second argument is input directory
+    input_dir = sys.argv[1]  # First argument is input directory
+    output_dir = sys.argv[2]   # Second argument is output directory
 elif len(sys.argv) > 1:
     input_dir = sys.argv[1]
     output_dir = os.path.join(os.getcwd(), "Output" + str(current_datetime))
 else:
     input_dir = os.environ.get("INPUT_DIR", os.getcwd())
     output_dir = os.path.join(os.getcwd(), "Output" + str(current_datetime))
+
 
 # Create output folder if needed
 try:
