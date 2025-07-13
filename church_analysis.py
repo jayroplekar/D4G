@@ -18,7 +18,7 @@ def validate_inputs(logger, input_dir):
     """
     logger.info("=== CHURCH ANALYSIS INPUT VALIDATION ===")
     required_files = {
-        'd4g_account.csv': ['Account Record Type', 'First_Gift_Year__c', 'Id'],
+        'd4g_account.csv': ['RecordTypeId', 'First_Gift_Year__c', 'Id'],
         'd4g_opportunity.csv': ['Amount', 'AccountId', 'CloseDate', 'Probability'],
     }
     
@@ -82,8 +82,8 @@ class Church_Analysis:
             df_opportunity = pd.read_csv(os.path.join(input_dir, 'd4g_opportunity.csv'))
             
             # Process the data
-            df_account = Church_Analysis.process_account_table(df_account)
-            df_opportunity_account = Church_Analysis.join_account_and_opportunity(df_account, df_opportunity)
+            df_account = Church_Analysis.process_account_table(df_account,logger)
+            df_opportunity_account = Church_Analysis.join_account_and_opportunity(df_account, df_opportunity,logger)
             
             # Get the analysis results
             donors_gained_over_time = Church_Analysis.get_donors_gained_per_year(df_account)
@@ -102,7 +102,7 @@ class Church_Analysis:
             logger.error(f"Traceback: {traceback.format_exc()}")
             raise
 
-    def process_account_table(df_account: pd.DataFrame) -> pd.DataFrame:
+    def process_account_table(df_account: pd.DataFrame,logger) -> pd.DataFrame:
         """Preprocesses the account table for Church Analysis.
 
         Args:
@@ -111,10 +111,10 @@ class Church_Analysis:
         Returns:
             A pd.DataFrame representing a processed copy of the account table.
         """
-        df_account["is_church"] = df_account["Account Record Type"].str.strip().str.lower().isin(
+        df_account["is_church"] = df_account['RecordTypeId'].str.strip().str.lower().isin(
             Church_Analysis._LOWERCASE_CHURCH_INDICATORS
         )
-
+        logger.info(f"unique RecordTypeId found {df_account.RecordTypeId.unique()}")
         # Ensure First_Gift_Year__c is numeric
         df_account['First_Gift_Year__c'] = pd.to_numeric(df_account['First_Gift_Year__c'], errors='coerce')
         df_account = df_account.dropna(subset=['First_Gift_Year__c'])
@@ -122,12 +122,11 @@ class Church_Analysis:
             logger.error('ERROR: No valid First_Gift_Year__c values after conversion.')
         df_account['First_Gift_Year__c'] = df_account['First_Gift_Year__c'].astype(int)
 
-        df_account = df_account[["Account Record Type", "is_church", "First_Gift_Year__c", "Id"]]
+        df_account = df_account[["RecordTypeId", "is_church", "First_Gift_Year__c", "Id"]]
         return df_account
 
     def join_account_and_opportunity(
-        df_account: pd.DataFrame, df_opportunity: pd.DataFrame
-    ) -> pd.DataFrame:
+        df_account: pd.DataFrame, df_opportunity: pd.DataFrame,logger) -> pd.DataFrame:
         """Joins the account and opportunity table, and does some preprocessing.
 
         Args:
@@ -138,7 +137,11 @@ class Church_Analysis:
             A pd.DataFrame of a processed copy of the merged tables.
         """
         # we only want closed info
-        df_opportunity = df_opportunity.loc[df_opportunity.Probability == "100%"]
+        df_opportunity = df_opportunity.loc[(df_opportunity.Probability == "100%") |(df_opportunity.Probability == 100)]
+
+        logger.info("PRE MERGE")
+        logger.info(f"\tOpportunity Table Shape: {df_opportunity.shape}")
+        logger.info(f"\tAccount Table Shape: {df_account.shape}")
 
         # Amount is normally Currency(11, 12) = $11.12. But we want it as float
         # Check if Amount is already numeric or needs conversion
@@ -154,6 +157,10 @@ class Church_Analysis:
         df_opportunity_account = df_opportunity.merge(
             df_account, left_on="AccountId", right_on="Id"
         )[["Amount", "Id", "CloseDate", "is_church"]]
+
+        logger.info("POST MERGE")
+        logger.info(f"\tMerged Table Shape: {df_opportunity_account.shape}")
+        
         if df_opportunity_account['CloseDate'].head(10).empty:
             logger.error('ERROR: No valid CloseDate values after merge.')
         df_opportunity_account["CloseDate"] = pd.to_datetime(df_opportunity_account.CloseDate)

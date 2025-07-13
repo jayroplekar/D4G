@@ -20,8 +20,8 @@ def validate_inputs(logger, input_dir):
     logger.info("=== EMAIL CAMPAIGN ANALYSIS INPUT VALIDATION ===")
     required_files = {
         'campaign_monitor_extract.csv': ['Name', 'wbsendit__Campaign_ID__c', 'wbsendit__Num_Opens__c', 'wbsendit__Num_Clicks__c'],
-        'contact_extract.csv': ['ID', 'goldenapp__Gender__c', 'npo02__LastCloseDate__c', 'npo02__TotalOppAmount__c'],
-        'email_tracking_extract.csv': ['Name', 'wbsendit__Campaign_ID__c', 'wbsendit__Contact__c', 'wbsendit__Activity__c'],
+        'contact_extract.csv': ['Id', 'goldenapp__Gender__c', 'npo02__LastCloseDate__c', 'npo02__TotalOppAmount__c'],
+        'email_tracking_extract.csv': ['Name', 'wbsendit__Campaign_Id__c', 'wbsendit__Contact__c', 'wbsendit__Activity__c'],
     }
     
     logger.info(f"Checking {len(required_files)} input files for email campaign analysis:")
@@ -103,14 +103,21 @@ class Campaign_Analysis:
             df_contact_extract.rename(columns={'goldenapp__Gender__c': 'GENDER','npo02__LastCloseDate__c':'LAST_GIFT_DATE',\
                                                         'npo02__TotalOppAmount__c':'TOTAL_GIFTS'}, inplace=True)
 
-            df_email_tracking_extract.rename(columns={'Name': 'CAMPAIGN','wbsendit__Campaign_ID__c':'CAMPAIGN_ID',\
+            df_email_tracking_extract.rename(columns={'Name': 'CAMPAIGN','wbsendit__Campaign_Id__c':'CAMPAIGN_ID',\
                                                         'wbsendit__Contact__c':'CONTACT',\
                                                         'wbsendit__Activity__c':'ACTIVITY'}, inplace=True)
+            logger.info("PRE MERGE")
+            logger.info(f"\tdf_campaign_monitor_extract Table Shape: {df_campaign_monitor_extract.shape}")
+            logger.info(f"\tdf_contact_extract Table Shape: {df_contact_extract.shape}")
+            logger.info(f"\tdf_email_tracking_extract Shape: {df_email_tracking_extract.shape}")
+
 
             df = df_email_tracking_extract.merge(df_campaign_monitor_extract, left_on=['CAMPAIGN', 'CAMPAIGN_ID'], 
                                                  right_on=['CAMPAIGN_NAME','CAMPAIGN_ID'], how='left').merge(
-                                                df_contact_extract, left_on=['CONTACT'], right_on=['ID'], how='left'
+                                                df_contact_extract, left_on=['CONTACT'], right_on=['Id'], how='left'
                                                 )
+            logger.info("POST MERGE")
+            logger.info(f"\t df  Table Shape: {df.shape}")
                 
             df.head()
 
@@ -468,6 +475,7 @@ class Campaign_Analysis:
                 if os.path.exists(persona_file):
                     df_personas = pd.read_csv(persona_file)
                     
+                    logger.info(f"\t df_personas Table Shape: {df_personas.shape}")
                     # Merge email campaign data with persona data
                     # We'll use CONTACT ID to match with AccountId from persona data
                     df_with_personas = df.merge(
@@ -476,9 +484,13 @@ class Campaign_Analysis:
                         right_on='AccountId', 
                         how='left'
                     )
+                    logger.info(f"\t df_personas merge with df Table Shape: {df_with_personas.shape}")
                     
                     # Filter for 'Opened' activity and group by persona
                     df_opens_by_persona = df_with_personas[df_with_personas['ACTIVITY'] == 'Opened'].copy()
+
+                    logger.info(f"\t Unique activities from df_opens_by_persona : {df_with_personas.ACTIVITY.unique()}")
+                    logger.info(f"\t Shape of df_opens_by_persona : {df_opens_by_persona.shape}")
                     
                     if len(df_opens_by_persona) > 0 and 'persona' in df_opens_by_persona.columns:
                         # Count opens by persona

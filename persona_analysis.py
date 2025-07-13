@@ -309,9 +309,14 @@ class Persona_Analysis:
                 'non_zero_counts': 'Donation Frequency Distribution', 
                 'dormancy_years': 'Donor Engagement Timeline'
             }
+            histo_bins = {
+                'amount_total': [0,500,1000,5000,10000,100000],
+                'non_zero_counts': [0,5,10,50,100], 
+                'dormancy_years': [0,2,4,6,8,10,20]
+            }
             
             for i, col in enumerate(['amount_total','non_zero_counts', 'dormancy_years']):
-                df_value[col].hist(ax=axes1[i])
+                df_value[col].hist(ax=axes1[i],bins=histo_bins[col])
                 axes1[i].set_title(title_mapping[col], fontweight='bold', fontsize=12)
                 axes1[i].grid(True, alpha=0.3)
                 x_label_mapping = {

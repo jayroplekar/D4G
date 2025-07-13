@@ -39,7 +39,7 @@ except Exception as e:
     sys.exit(1)
 
 # Remove old Analysis.log before setting up logger
-log_file = os.path.join(output_dir, 'Analysis.log')
+log_file = os.path.join(output_dir, str(current_datetime)+'Analysis.log')
 if os.path.exists(log_file):
     os.remove(log_file)
 
@@ -58,6 +58,11 @@ logger.addHandler(stream_handler)
 logger.info(f"Timestamp: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
 
 
+# Get the name of the running script or executable
+executable_name = os.path.basename(sys.argv[0])
+
+# Basic Info
+logger.info(f"Executing File: {executable_name}")
 logger.info(f"Input folder: {input_dir}")
 logger.info(f"Output folder: {output_dir}")
 
@@ -69,20 +74,22 @@ if not os.path.exists(input_dir):
     sys.exit(1)
 
 # Check required input files
-required_files = [
-    'd4g_account.csv',
-    'd4g_opportunity.csv',
-    'd4g_address.csv',
-    'campaign_monitor_extract.csv',
-    'contact_extract.csv',
-    'email_tracking_extract.csv',
-]
-missing_files = [fname for fname in required_files if not os.path.exists(os.path.join(input_dir, fname))]
-if missing_files:
-    logger.error(f"Missing required input files: {missing_files}")
-    with open(os.path.join(output_dir, "error_summary.txt"), "w") as f:
-        f.write(f"Missing required input files: {missing_files}")
-    sys.exit(1)
+# we have delegated this to individual analysis file
+
+##required_files = [
+##    'd4g_account.csv',
+##    'd4g_opportunity.csv',
+##    'd4g_address.csv',
+##    'campaign_monitor_extract.csv',
+##    'contact_extract.csv',
+##    'email_tracking_extract.csv',
+##]
+##missing_files = [fname for fname in required_files if not os.path.exists(os.path.join(input_dir, fname))]
+##if missing_files:
+##    logger.error(f"Missing required input files: {missing_files}")
+##    with open(os.path.join(output_dir, "error_summary.txt"), "w") as f:
+##        f.write(f"Missing required input files: {missing_files}")
+##    sys.exit(1)
 
 
 pdf_filename="Output_"+str(current_datetime)+".pdf"
@@ -93,19 +100,19 @@ try:
     if validate_persona_inputs(logger, input_dir):
         Analyzer1.process_Personas(pdf, logger, output_dir, input_dir)
     else:
-        logger.error("Persona analysis validation failed. Skipping persona analysis.")
+        logger.error("Persona analysis input validation failed. Skipping persona analysis.")
 
     Analyzer2 = Campaign_Analysis()
     if validate_campaign_inputs(logger, input_dir):
         Analyzer2.process_campaign(pdf, logger, output_dir, input_dir)
     else:
-        logger.error("Campaign analysis validation failed. Skipping campaign analysis.")
+        logger.error("Campaign analysis input validation failed. Skipping campaign analysis.")
 
     Analyzer3 = Church_Analysis()
     if validate_church_inputs(logger, input_dir):
         Analyzer3.process_ChurchData(pdf, logger, output_dir, input_dir)
     else:
-        logger.error("Church analysis validation failed. Skipping church analysis.")
+        logger.error("Church analysis input validation failed. Skipping church analysis.")
 except Exception as e:
     logger.error(f"Critical error: {e}")
     with open(os.path.join(output_dir, "error_summary.txt"), "w") as f:
